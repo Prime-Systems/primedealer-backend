@@ -2,6 +2,7 @@ package com.prime.userservice.domain.service;
 
 import com.prime.userservice.domain.exception.UserNotFoundException;
 import com.prime.userservice.domain.mapper.UserMapper;
+import com.prime.userservice.domain.model.CustomUserDetails;
 import com.prime.userservice.domain.model.User;
 import com.prime.userservice.domain.model.UserEntity;
 import com.prime.userservice.domain.repository.UserRepository;
@@ -45,16 +46,39 @@ public class UserService implements UserDetailsService {
         );
     }
 
-    public UserEntity getUserById(String userId) {
-        return userRepository.findById(UUID.fromString(userId))
+    public User getUserById(String userId) {
+        UserEntity user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+
+        return userMapper.toUserRecord(user);
     }
 
-    public void updateUser(String userId, UpdateUserRequest updateUserRequest) {
+    public User updateUser(String userId, UpdateUserRequest updateUserRequest) {
         UserEntity userEntity = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
 
         userMapper.updateUserEntityFromUpdateRequest(updateUserRequest, userEntity);
+        userRepository.save(userEntity);
+
+        return userMapper.toUserRecord(userEntity);
+    }
+
+    public void deleteUser(String userId) {
+        UserEntity userEntity = userRepository.findById(UUID.fromString(userId))
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+        userRepository.delete(userEntity);
+    }
+
+    public void updatePassword(String userId, String oldPassword, String newPassword) {
+        UserEntity userEntity = userRepository.findById(UUID.fromString(userId))
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+
+        if (!passwordEncoder.matches(oldPassword, userEntity.getPasswordHash())) {
+            throw new IllegalArgumentException("Old password is incorrect");
+        }
+
+        String encodedNewPassword = passwordEncoder.encode(newPassword);
+        userEntity.setPasswordHash(encodedNewPassword);
         userRepository.save(userEntity);
     }
 
@@ -63,15 +87,9 @@ public class UserService implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         UserEntity userEntity = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(userEntity.getEmail())
-                .password(userEntity.getPasswordHash())
-                .roles(userEntity.getRole().name())
-                .accountExpired(!userEntity.isActive())
-                .accountLocked(!userEntity.isActive())
-                .credentialsExpired(!userEntity.isActive())
-                .disabled(!userEntity.isActive())
-                .build();
+
+        // Return an instance of your CustomUserDetails, populated from the UserEntity
+        return new CustomUserDetails(userEntity);
     }
 
 }

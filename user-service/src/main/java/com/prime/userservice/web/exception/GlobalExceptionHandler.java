@@ -23,6 +23,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     ProblemDetail handleUnhandledException(Exception e) {
+        System.out.println("Unhandled exception occurred: " + e.getMessage());
         ProblemDetail problemDetail =
                 ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         problemDetail.setTitle("Internal Server Error");
