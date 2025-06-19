@@ -1,4 +1,4 @@
-package com.prime.userservice.domain;
+package com.prime.userservice.domain.exception;
 
 public class UserNotFoundException extends RuntimeException {
     public UserNotFoundException(String message) {

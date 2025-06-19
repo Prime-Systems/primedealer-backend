@@ -1,6 +1,5 @@
-package com.prime.userservice.domain;
+package com.prime.userservice.domain.model;
 
-import com.prime.userservice.domain.models.UserRole;
 import jakarta.persistence.*;
 import org.hibernate.annotations.UuidGenerator;
 

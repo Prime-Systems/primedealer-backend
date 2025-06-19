@@ -1,4 +1,4 @@
-package com.prime.userservice.domain.models;
+package com.prime.userservice.domain.model;
 
 public enum UserRole {
     BUYER,
