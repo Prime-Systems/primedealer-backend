@@ -1,5 +1,6 @@
 package com.prime.userservice.domain.service;
 
+import com.prime.userservice.domain.exception.UserNotFoundException;
 import com.prime.userservice.domain.mapper.UserMapper;
 import com.prime.userservice.domain.model.UserEntity;
 import com.prime.userservice.domain.repository.UserRepository;
@@ -42,12 +43,12 @@ public class UserService {
 
     public UserEntity getUserById(String userId) {
         return userRepository.findById(UUID.fromString(userId))
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
     }
 
     public void updateUser(String userId, UpdateUserRequest updateUserRequest) {
         UserEntity userEntity = userRepository.findById(UUID.fromString(userId))
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
 
         userMapper.updateUserEntityFromUpdateRequest(updateUserRequest, userEntity);
         userRepository.save(userEntity);

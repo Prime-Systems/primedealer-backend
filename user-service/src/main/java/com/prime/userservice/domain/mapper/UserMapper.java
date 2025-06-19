@@ -25,7 +25,7 @@ public interface UserMapper {
     @Mapping(target = "id", ignore = true) // Ignore ID as it will be generated
     @Mapping(target = "createdAt", ignore = true) // Ignore createdAt as it will be set by the service
     @Mapping(target = "updatedAt", ignore = true) // Ignore updatedAt as it will be set by the service
-    @Mapping(target = "passwprdHash", ignore = true) // Ignore passwordHash as it will be set by the service
+    @Mapping(target = "passwordHash", ignore = true) // Ignore passwordHash as it will be set by the service
     UserEntity toUserEntity(CreateUserRequest request);
 
     List<UserEntity> toUserEntityList(List<CreateUserRequest> requests);
