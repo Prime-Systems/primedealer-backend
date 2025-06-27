@@ -39,5 +39,6 @@ jobs:
       - name: Build and Publish Docker Image
         run: |
           ./mvnw spring-boot:build-image -DskipTests
+          docker tag primedevteam/primedealer-user-service $DOCKER_IMAGE_NAME
           echo "Pushing the image $DOCKER_IMAGE_NAME to Docker Hub..."
           docker push $DOCKER_IMAGE_NAME
