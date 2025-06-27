@@ -152,6 +152,13 @@
 						<name>${dockerImageName}</name>
 					</image>
 				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>build-info</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
