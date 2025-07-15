@@ -2,7 +2,7 @@ version: "3.8"
 name: "primedealer"
 services:
   user-service:
-    image: atomarkin/primedealer-user-service
+    image: primedevteam/primedealer-user-service
     container_name: user-service
     environment:
       - SPRING_PROFILES_ACTIVE=docker
