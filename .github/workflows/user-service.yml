@@ -54,5 +54,5 @@ jobs:
         run: |
           aws cloudformation deploy \
             --stack-name primedealer-user-service \
-            --template-file deployment/user-service-ecs.yml \
+            --template-file ../deployment/user-service-ecs.yml \
             --capabilities CAPABILITY_NAMED_IAM
