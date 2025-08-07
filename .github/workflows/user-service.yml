@@ -42,3 +42,17 @@ jobs:
           docker tag primedevteam/primedealer-user-service $DOCKER_IMAGE_NAME
           echo "Pushing the image $DOCKER_IMAGE_NAME to Docker Hub..."
           docker push $DOCKER_IMAGE_NAME
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy to AWS ECS using CloudFormation
+        run: |
+          aws cloudformation deploy \
+            --stack-name primedealer-user-service \
+            --template-file deployment/user-service-ecs.yml \
+            --capabilities CAPABILITY_NAMED_IAM

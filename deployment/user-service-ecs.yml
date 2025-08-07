@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+
+  PrimedealerCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: primedealer-cluster
+
+  UserServiceTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: user-service-task
+      Cpu: "512"
+      Memory: "1024"
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      ExecutionRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/ecsTaskExecutionRole"
+      ContainerDefinitions:
+        - Name: user-service
+          Image: "primedevteam/primedealer-user-service:latest"
+          PortMappings:
+            - ContainerPort: 8081
+          Environment:
+            - Name: SPRING_PROFILES_ACTIVE
+              Value: prod
+            - Name: DB_URL
+              Value: jdbc:postgresql://dummy-db:5432/postgres
+            - Name: DB_USERNAME
+              Value: postgres
+            - Name: DB_PASSWORD
+              Value: postgres
+
+  UserService:
+    Type: AWS::ECS::Service
+    DependsOn: PrimedealerCluster
+    Properties:
+      Cluster: !Ref PrimedealerCluster
+      LaunchType: FARGATE
+      DesiredCount: 1
+      TaskDefinition: !Ref UserServiceTaskDefinition
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets:
+            - subnet-037581246e4e5c462
+          SecurityGroups:
+            - sg-0b47e87c66b522430
