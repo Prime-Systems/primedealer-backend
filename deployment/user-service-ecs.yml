@@ -44,4 +44,4 @@ Resources:
           Subnets:
             - subnet-037581246e4e5c462
           SecurityGroups:
-            - sg-0b47e87c66b522430
+            - sg-0badc74f3e9f010a2
