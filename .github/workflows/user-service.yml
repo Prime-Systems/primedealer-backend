@@ -45,6 +45,7 @@ jobs:
           cache: 'maven'
 
       - name: Ensure mvnw is executable
+        working-directory: ${{ env.WORKING_DIRECTORY }}
         run: chmod +x mvnw
 
       - name: Build, Test, and Build Docker Image with Maven
