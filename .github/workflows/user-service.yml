@@ -44,6 +44,9 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Ensure mvnw is executable
+        run: chmod +x mvnw
+
       - name: Build, Test, and Build Docker Image with Maven
         working-directory: ${{ env.WORKING_DIRECTORY }}
         run: ./mvnw spring-boot:build-image -Dspring-boot.build-image.imageName=${{ env.ECR_REPOSITORY }}
