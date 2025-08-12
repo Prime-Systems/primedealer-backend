@@ -1,6 +1,10 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Resources:
+Parameters:
+  ECRImageURI:
+    Type: String
+    Description: URI of the ECR image to deploy
 
+Resources:
   PrimedealerCluster:
     Type: AWS::ECS::Cluster
     Properties:
@@ -17,7 +21,7 @@ Resources:
       ExecutionRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/ecsTaskExecutionRole"
       ContainerDefinitions:
         - Name: user-service
-          Image: "primedevteam/primedealer-user-service:latest"
+          Image: !Ref ECRImageURI
           PortMappings:
             - ContainerPort: 8081
           Environment:

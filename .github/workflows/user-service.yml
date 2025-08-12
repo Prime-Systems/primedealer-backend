@@ -13,46 +13,53 @@ jobs:
     runs-on: ubuntu-latest
     env:
       working-directory: ./user-service
-      DOCKER_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/primedealer-user-service
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      ECR_REPO_NAME: primedealer-user-service
     defaults:
       run:
-        working-directory: ${{ env.working-directory}}
+        working-directory: ${{ env.working-directory }}
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
+
       - name: Ensure mvnw is executable
         run: chmod +x mvnw
+
       - name: Build with Maven
         run: ./mvnw -ntp verify
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and Publish Docker Image
-        run: |
-          ./mvnw spring-boot:build-image -DskipTests
-          docker tag primedevteam/primedealer-user-service $DOCKER_IMAGE_NAME
-          echo "Pushing the image $DOCKER_IMAGE_NAME to Docker Hub..."
-          docker push $DOCKER_IMAGE_NAME
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push Docker image to ECR
+        run: |
+          IMAGE_TAG=latest
+          ECR_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO_NAME }}:$IMAGE_TAG
+          
+          ./mvnw spring-boot:build-image -DskipTests \
+            -Dspring-boot.build-image.imageName=$ECR_URI
+
+          echo "Pushing the image $ECR_URI to ECR..."
+          docker push $ECR_URI
 
       - name: Deploy to AWS ECS using CloudFormation
         run: |
           aws cloudformation deploy \
             --stack-name primedealer-user-service \
             --template-file ../deployment/user-service-ecs.yml \
-            --capabilities CAPABILITY_NAMED_IAM
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides ECRImageURI=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO_NAME }}:latest
