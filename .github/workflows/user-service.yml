@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # Required for AWS OIDC authentication
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -46,6 +46,35 @@ jobs:
 
       - name: Ensure mvnw is executable
         working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: chmod +x mvnw
+
+      # --- REVISED BUILD AND PUSH LOGIC ---
+      - name: Build, and Push Docker image to ECR
+        run: |
+          # 1. Construct the full ECR image URI
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ECR_IMAGE_URI="$ACCOUNT_ID.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest"
+          echo "Image will be built and tagged as: $ECR_IMAGE_URI"
+
+          # 2. Build the image directly with the final ECR name
+          #    Note the change in working directory for the mvnw command
+          ./${{ env.WORKING_DIRECTORY }}/mvnw -f ${{ env.WORKING_DIRECTORY }}/pom.xml spring-boot:build-image \
+            -Dspring-boot.build-image.imageName="$ECR_IMAGE_URI"
+          
+          # 3. Push the newly built image to ECR
+          echo "Pushing image to ECR..."
+          docker push "$ECR_IMAGE_URI"
+
+          # 4. Store the ECR URI for the deploy step
+          echo "ECR_IMAGE_URI=$ECR_IMAGE_URI" >> $GITHUB_ENV
+
+      - name: Deploy to AWS ECS using CloudFormation
+        run: |
+          aws cloudformation deploy \
+            --stack-name ${{ env.ECS_STACK_NAME }} \
+            --template-file ${{ env.ECS_TEMPLATE_FILE }} \
+            --parameter-overrides ImageURI=${{ env.ECR_IMAGE_URI }} \
+            --capabilities CAPABILITY_NAMED_IAM
         run: chmod +x mvnw
 
       - name: Build, Test, and Build Docker Image with Maven
