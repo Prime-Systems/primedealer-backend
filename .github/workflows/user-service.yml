@@ -1,25 +1,41 @@
-name: User Service
+name: User Service CI/CD
 
 on:
   push:
     paths:
-      - user-service/**
+      - 'user-service/**'
     branches:
       - '**'
 
+env:
+  # Define ECR and AWS settings
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECR_REPOSITORY: primedealer-user-service
+  ECS_STACK_NAME: primedealer-user-service
+  ECS_TEMPLATE_FILE: ./deployment/user-service-ecs.yml
+  WORKING_DIRECTORY: ./user-service
+
 jobs:
-  build:
-    name: Build
+  build-and-deploy:
+    name: Build and Deploy
     runs-on: ubuntu-latest
-    env:
-      working-directory: ./user-service
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      ECR_REPO_NAME: primedealer-user-service
-    defaults:
-      run:
-        working-directory: ${{ env.working-directory }}
+    permissions:
+      contents: read
+      id-token: write # Required for AWS OIDC authentication
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Setup Java 21
         uses: actions/setup-java@v4
@@ -28,38 +44,29 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Ensure mvnw is executable
-        run: chmod +x mvnw
+      - name: Build, Test, and Build Docker Image with Maven
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: ./mvnw spring-boot:build-image -Dspring-boot.build-image.imageName=${{ env.ECR_REPOSITORY }}
 
-      - name: Build with Maven
-        run: ./mvnw -ntp verify
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build and Push Docker image to ECR
+      - name: Tag and Push Docker image to Amazon ECR
         run: |
-          IMAGE_TAG=latest
-          ECR_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO_NAME }}:$IMAGE_TAG
+          # Get the AWS Account ID and construct the full ECR image URI
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ECR_IMAGE_URI="$ACCOUNT_ID.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest"
           
-          ./mvnw spring-boot:build-image -DskipTests \
-            -Dspring-boot.build-image.imageName=$ECR_URI
+          echo "Tagging image ${{ env.ECR_REPOSITORY }} as $ECR_IMAGE_URI"
+          docker tag ${{ env.ECR_REPOSITORY }} $ECR_IMAGE_URI
 
-          echo "Pushing the image $ECR_URI to ECR..."
-          docker push $ECR_URI
+          echo "Pushing image to ECR..."
+          docker push $ECR_IMAGE_URI
+
+          # Store the ECR URI in an environment variable for the deploy step
+          echo "ECR_IMAGE_URI=$ECR_IMAGE_URI" >> $GITHUB_ENV
 
       - name: Deploy to AWS ECS using CloudFormation
         run: |
           aws cloudformation deploy \
-            --stack-name primedealer-user-service \
-            --template-file ../deployment/user-service-ecs.yml \
-            --capabilities CAPABILITY_NAMED_IAM \
-            --parameter-overrides ECRImageURI=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO_NAME }}:latest
+            --stack-name ${{ env.ECS_STACK_NAME }} \
+            --template-file ${{ env.ECS_TEMPLATE_FILE }} \
+            --parameter-overrides ImageURI=${{ env.ECR_IMAGE_URI }} \
+            --capabilities CAPABILITY_NAMED_IAM

@@ -1,8 +1,9 @@
 AWSTemplateFormatVersion: "2010-09-09"
+
 Parameters:
-  ECRImageURI:
+  ImageURI:
     Type: String
-    Description: URI of the ECR image to deploy
+    Description: The URI of the Docker image to deploy.
 
 Resources:
   PrimedealerCluster:
@@ -21,18 +22,20 @@ Resources:
       ExecutionRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/ecsTaskExecutionRole"
       ContainerDefinitions:
         - Name: user-service
-          Image: !Ref ECRImageURI
+          # Use the ImageURI parameter passed from the CI/CD pipeline
+          Image: !Ref ImageURI
           PortMappings:
             - ContainerPort: 8081
-          Environment:
+          # Use Secrets Manager instead of hardcoded environment variables
+          Secrets:
             - Name: SPRING_PROFILES_ACTIVE
-              Value: prod
+              ValueFrom: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:MyDbCredentials:SPRING_PROFILES_ACTIVE::"
             - Name: DB_URL
-              Value: jdbc:postgresql://dummy-db:5432/postgres
+              ValueFrom: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:MyDbCredentials:DB_URL::"
             - Name: DB_USERNAME
-              Value: postgres
+              ValueFrom: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:MyDbCredentials:DB_USERNAME::"
             - Name: DB_PASSWORD
-              Value: postgres
+              ValueFrom: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:MyDbCredentials:DB_PASSWORD::"
 
   UserService:
     Type: AWS::ECS::Service
