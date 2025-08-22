@@ -5,7 +5,22 @@ Parameters:
     Type: String
     Description: The URI of the Docker image to deploy.
 
+  # --- NEW PARAMETERS ---
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: The VPC to deploy the service into.
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: A list of at least one subnet ID for the service.
+
+  SecurityGroupIds:
+    Type: List<AWS::EC2::SecurityGroup::Id>
+    Description: A list of at least one security group ID for the service.
+
 Resources:
+  # This cluster doesn't need to be defined here if you have a shared cluster.
+  # If you create a new one each time, that's fine too.
   PrimedealerCluster:
     Type: AWS::ECS::Cluster
     Properties:
@@ -22,11 +37,9 @@ Resources:
       ExecutionRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/ecsTaskExecutionRole"
       ContainerDefinitions:
         - Name: user-service
-          # Use the ImageURI parameter passed from the CI/CD pipeline
           Image: !Ref ImageURI
           PortMappings:
             - ContainerPort: 8081
-          # Use Secrets Manager instead of hardcoded environment variables
           Secrets:
             - Name: SPRING_PROFILES_ACTIVE
               ValueFrom: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:MyDbCredentials:SPRING_PROFILES_ACTIVE::"
@@ -48,7 +61,6 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
-          Subnets:
-            - subnet-037581246e4e5c462
-          SecurityGroups:
-            - sg-0badc74f3e9f010a2
+          # Use the parameters instead of hardcoded values
+          Subnets: !Ref SubnetIds
+          SecurityGroups: !Ref SecurityGroupIds
