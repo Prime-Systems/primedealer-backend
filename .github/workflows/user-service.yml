@@ -73,5 +73,9 @@ jobs:
           aws cloudformation deploy \
             --stack-name ${{ env.ECS_STACK_NAME }} \
             --template-file ${{ env.ECS_TEMPLATE_FILE }} \
-            --parameter-overrides ImageURI=${{ env.ECR_IMAGE_URI }} \
+            --parameter-overrides \
+              ImageURI=${{ env.ECR_IMAGE_URI }} \
+              VpcId=${{ secrets.VPC_ID }} \
+              SubnetIds='${{ secrets.SUBNET_IDS }}' \
+              SecurityGroupIds='${{ secrets.SECURITY_GROUP_IDS }}' \
             --capabilities CAPABILITY_NAMED_IAM
