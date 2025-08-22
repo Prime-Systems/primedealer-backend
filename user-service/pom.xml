@@ -148,9 +148,6 @@
 							<artifactId>lombok</artifactId>
 						</exclude>
 					</excludes>
-					<image>
-						<name>${dockerImageName}</name>
-					</image>
 				</configuration>
 				<executions>
 					<execution>
