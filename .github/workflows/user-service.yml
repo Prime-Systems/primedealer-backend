@@ -79,7 +79,7 @@ jobs:
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: PrimeDevs # Or your EC2 username
+          username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             # CORRECTION: Log in to ECR on the EC2 instance
