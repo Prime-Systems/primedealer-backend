@@ -81,3 +81,4 @@ jobs:
               DbMasterUsername=${{ secrets.DB_MASTER_USERNAME }} \
               DbMasterPassword=${{ secrets.DB_MASTER_PASSWORD }} \
             --capabilities CAPABILITY_NAMED_IAM
+

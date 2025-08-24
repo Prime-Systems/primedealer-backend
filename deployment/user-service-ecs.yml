@@ -1,6 +1,3 @@
-AWSTemplateFormatVersion: "2010-09-09"
-Description: ECS Fargate service with Postgres RDS and Secrets Manager
-
 Parameters:
   ImageURI:
     Type: String
@@ -8,15 +5,12 @@ Parameters:
 
   VpcId:
     Type: AWS::EC2::VPC::Id
-    Description: The VPC to deploy the service into.
 
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
-    Description: A list of private subnets for the service and DB.
 
   SecurityGroupIds:
     Type: List<AWS::EC2::SecurityGroup::Id>
-    Description: A list of additional security groups for the ECS service.
 
   DbMasterUsername:
     Type: String
@@ -28,36 +22,6 @@ Parameters:
     NoEcho: true
 
 Resources:
-  # 🔹 Security Group for RDS
-  DbSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Security group for RDS Postgres
-      VpcId: !Ref VpcId
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 5432
-          ToPort: 5432
-          SourceSecurityGroupId: !Ref EcsSecurityGroup
-
-  # 🔹 Security Group for ECS tasks
-  EcsSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Security group for ECS tasks
-      VpcId: !Ref VpcId
-      SecurityGroupEgress:
-        - IpProtocol: -1
-          CidrIp: 0.0.0.0/0
-
-  # 🔹 RDS Subnet Group
-  DbSubnetGroup:
-    Type: AWS::RDS::DBSubnetGroup
-    Properties:
-      DBSubnetGroupDescription: Subnet group for RDS
-      SubnetIds: !Ref SubnetIds
-
-  # 🔹 RDS Postgres DB
   UserDatabase:
     Type: AWS::RDS::DBInstance
     Properties:
@@ -67,32 +31,14 @@ Resources:
       Engine: postgres
       MasterUsername: !Ref DbMasterUsername
       MasterUserPassword: !Ref DbMasterPassword
-      VPCSecurityGroups:
-        - !Ref DbSecurityGroup
-      DBSubnetGroupName: !Ref DbSubnetGroup
       PubliclyAccessible: false
       BackupRetentionPeriod: 1
 
-  # 🔹 Secrets Manager (with DB creds + app profile)
-  DbSecret:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Name: primedealer-db-credentials
-      SecretString: !Sub |
-        {
-          "SPRING_PROFILES_ACTIVE": "prod",
-          "DB_URL": "jdbc:postgresql://${UserDatabase.Endpoint.Address}:5432/postgres",
-          "DB_USERNAME": "${DbMasterUsername}",
-          "DB_PASSWORD": "${DbMasterPassword}"
-        }
-
-  # 🔹 ECS Cluster
   PrimedealerCluster:
     Type: AWS::ECS::Cluster
     Properties:
       ClusterName: primedealer-cluster
 
-  # 🔹 ECS Task Definition
   UserServiceTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -107,22 +53,17 @@ Resources:
           Image: !Ref ImageURI
           PortMappings:
             - ContainerPort: 8081
-          Secrets:
-            - Name: SPRING_PROFILES_ACTIVE
-              ValueFrom: !Sub "${DbSecret.Arn}:SPRING_PROFILES_ACTIVE::"
+          Environment:
             - Name: DB_URL
-              ValueFrom: !Sub "${DbSecret.Arn}:DB_URL::"
+              Value: !Sub "jdbc:postgresql://${UserDatabase.Endpoint.Address}:5432/postgres"
             - Name: DB_USERNAME
-              ValueFrom: !Sub "${DbSecret.Arn}:DB_USERNAME::"
+              Value: !Ref DbMasterUsername
             - Name: DB_PASSWORD
-              ValueFrom: !Sub "${DbSecret.Arn}:DB_PASSWORD::"
+              Value: !Ref DbMasterPassword
 
-  # 🔹 ECS Service
   UserService:
     Type: AWS::ECS::Service
-    DependsOn:
-      - PrimedealerCluster
-      - UserDatabase
+    DependsOn: UserDatabase
     Properties:
       Cluster: !Ref PrimedealerCluster
       LaunchType: FARGATE
@@ -132,15 +73,9 @@ Resources:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
           Subnets: !Ref SubnetIds
-          SecurityGroups:
-            - !Ref EcsSecurityGroup
-            - !Ref SecurityGroupIds
+          SecurityGroups: !Ref SecurityGroupIds
 
 Outputs:
   DatabaseEndpoint:
     Description: RDS endpoint
     Value: !GetAtt UserDatabase.Endpoint.Address
-
-  SecretName:
-    Description: Name of the Secrets Manager secret
-    Value: !Ref DbSecret
