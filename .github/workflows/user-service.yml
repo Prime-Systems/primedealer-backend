@@ -82,9 +82,6 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # The IAM Instance Profile now handles AWS authentication automatically.
-            # The "aws ecr get-login-password" command is no longer needed.
-            
             # Set environment variables for Docker Compose from GitHub Secrets
             export DB_USER=${{ secrets.DB_USER }}
             export DB_PASSWORD=${{ secrets.DB_PASSWORD }}
@@ -124,5 +121,5 @@ jobs:
             
             # Pull the latest images and restart the services
             cd ~
-            docker compose pull  # <-- CORRECTION: Note the space
-            docker compose up -d --force-recreate # <-- CORRECTION: Note the space
+            docker-compose pull
+            docker-compose up -d --force-recreate
