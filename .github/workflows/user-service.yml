@@ -57,7 +57,7 @@ jobs:
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
+          username: PrimeDevs
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             echo "Pulling latest image..."
