@@ -8,20 +8,14 @@ on:
       - '**'
 
 env:
-  # Define ECR and AWS settings
   AWS_REGION: ${{ secrets.AWS_REGION }}
   ECR_REPOSITORY: primedealer-user-service
-  ECS_STACK_NAME: primedealer-user-service
-  ECS_TEMPLATE_FILE: ./deployment/user-service-ecs.yml
   WORKING_DIRECTORY: ./user-service
 
 jobs:
-  build-and-deploy:
-    name: Build and Deploy
+  build-and-push:
+    name: Build and Push Docker Image
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
 
     steps:
       - name: Checkout repository
@@ -48,37 +42,18 @@ jobs:
         working-directory: ${{ env.WORKING_DIRECTORY }}
         run: chmod +x mvnw
 
-      # --- REVISED BUILD AND PUSH LOGIC ---
-      - name: Build, and Push Docker image to ECR
+      - name: Build and Push Docker image to ECR
         run: |
-          # 1. Construct the full ECR image URI
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           ECR_IMAGE_URI="$ACCOUNT_ID.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest"
-          echo "Image will be built and tagged as: $ECR_IMAGE_URI"
+          echo "Building Docker image: $ECR_IMAGE_URI"
 
-          # 2. Build the image directly with the final ECR name
-          #    Note the change in working directory for the mvnw command
+          # Build image from Spring Boot app
           ./${{ env.WORKING_DIRECTORY }}/mvnw -f ${{ env.WORKING_DIRECTORY }}/pom.xml spring-boot:build-image \
             -Dspring-boot.build-image.imageName="$ECR_IMAGE_URI"
-          
-          # 3. Push the newly built image to ECR
-          echo "Pushing image to ECR..."
+
+          # Push to ECR
           docker push "$ECR_IMAGE_URI"
 
-          # 4. Store the ECR URI for the deploy step
+          # Save URI for reference (if needed)
           echo "ECR_IMAGE_URI=$ECR_IMAGE_URI" >> $GITHUB_ENV
-
-      - name: Deploy to AWS ECS using CloudFormation
-        run: |
-          aws cloudformation deploy \
-            --stack-name ${{ env.ECS_STACK_NAME }} \
-            --template-file ${{ env.ECS_TEMPLATE_FILE }} \
-            --parameter-overrides \
-              ImageURI=${{ env.ECR_IMAGE_URI }} \
-              VpcId=${{ secrets.VPC_ID }} \
-              SubnetIds='${{ secrets.SUBNET_IDS }}' \
-              SecurityGroupIds='${{ secrets.SECURITY_GROUP_IDS }}' \
-              DbMasterUsername=${{ secrets.DB_MASTER_USERNAME }} \
-              DbMasterPassword=${{ secrets.DB_MASTER_PASSWORD }} \
-            --capabilities CAPABILITY_NAMED_IAM
-
