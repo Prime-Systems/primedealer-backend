@@ -5,7 +5,7 @@ on:
     paths:
       - 'user-service/**'
     branches:
-      - '**'
+      - main  # <-- IMPROVEMENT: Only deploy from the 'main' branch
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -13,8 +13,11 @@ env:
   WORKING_DIRECTORY: ./user-service
 
 jobs:
-  build-push-deploy:
+  build-and-push:
+    name: Build and Push to ECR
     runs-on: ubuntu-latest
+    outputs:
+      image_uri: ${{ steps.build-image.outputs.image }} # Pass the image URI to the deploy job
 
     steps:
       - name: Checkout repository
@@ -28,6 +31,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
+        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Setup Java 21
@@ -41,45 +45,85 @@ jobs:
         working-directory: ${{ env.WORKING_DIRECTORY }}
         run: chmod +x mvnw
 
-      - name: Build and Push Docker image to ECR
+      - name: Run Tests with Maven
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: ./mvnw test # <-- IMPROVEMENT: Added a test step
+
+      - name: Build and Push Docker image
+        id: build-image
         run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          ECR_IMAGE_URI="$ACCOUNT_ID.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest"
+          IMAGE_TAG=${{ github.sha }} # <-- IMPROVEMENT: Use Git SHA for a unique tag
+          ECR_IMAGE_URI="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${IMAGE_TAG}"
           echo "Building Docker image: $ECR_IMAGE_URI"
 
           ./${{ env.WORKING_DIRECTORY }}/mvnw -f ${{ env.WORKING_DIRECTORY }}/pom.xml spring-boot:build-image \
             -Dspring-boot.build-image.imageName="$ECR_IMAGE_URI"
 
           docker push "$ECR_IMAGE_URI"
-          echo "ECR_IMAGE_URI=$ECR_IMAGE_URI" >> $GITHUB_ENV
+          echo "image=$ECR_IMAGE_URI" >> $GITHUB_OUTPUT # Set output for next job
 
-      - name: Deploy to EC2
+  deploy:
+    name: Deploy to EC2
+    needs: build-and-push # This job runs only after build-and-push succeeds
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy using Docker Compose
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: PrimeDevs
+          username: PrimeDevs # Or your EC2 username
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            echo "Pulling latest image..."
-            docker pull $ECR_IMAGE_URI
+            # CORRECTION: Log in to ECR on the EC2 instance
+            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
 
-            echo "Starting Postgres container (if not running)..."
-            docker ps -a | grep user-db || \
-              docker run -d --name user-db \
-              -e POSTGRES_USER=postgres \
-              -e POSTGRES_PASSWORD=postgres \
-              -e POSTGRES_DB=postgres \
-              -p 5432:5432 \
-              postgres:17-alpine
+            # Set environment variables for Docker Compose from GitHub Secrets
+            export DB_USER=${{ secrets.DB_USER }}
+            export DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            export IMAGE_URI=${{ needs.build-and-push.outputs.image_uri }}
 
-            echo "Stopping existing app container (if running)..."
-            docker stop user-service || true
-            docker rm user-service || true
+            # Create or update docker-compose.yml file
+            # IMPROVEMENT: Use Docker Compose for cleaner service management
+            cat << EOF > ~/docker-compose.yml
+            version: '3.8'
+            services:
+              db:
+                image: postgres:17-alpine
+                environment:
+                  POSTGRES_USER: \${DB_USER}
+                  POSTGRES_PASSWORD: \${DB_PASSWORD}
+                  POSTGRES_DB: postgres
+                ports:
+                  - "5432:5432"
+                volumes:
+                  - user_db_data:/var/lib/postgresql/data # <-- CORRECTION: Persist DB data
+                restart: always
 
-            echo "Starting new app container..."
-            docker run -d --name user-service \
-              -p 8081:8081 \
-              -e DB_URL=jdbc:postgresql://localhost:5432/postgres \
-              -e DB_USERNAME=postgres \
-              -e DB_PASSWORD=postgres \
-              $ECR_IMAGE_URI
+              app:
+                image: \${IMAGE_URI}
+                ports:
+                  - "8081:8081"
+                environment:
+                  DB_URL: jdbc:postgresql://db:5432/postgres # Use service name 'db' for hostname
+                  DB_USERNAME: \${DB_USER}
+                  DB_PASSWORD: \${DB_PASSWORD}
+                depends_on:
+                  - db
+                restart: always
+
+            volumes:
+              user_db_data:
+            EOF
+
+            # Pull the latest images and restart the services
+            cd ~
+            docker-compose pull
+            docker-compose up -d --force-recreate
