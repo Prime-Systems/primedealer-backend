@@ -82,16 +82,15 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # CORRECTION: Log in to ECR on the EC2 instance
-            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
-
+            # The IAM Instance Profile now handles AWS authentication automatically.
+            # The "aws ecr get-login-password" command is no longer needed.
+            
             # Set environment variables for Docker Compose from GitHub Secrets
             export DB_USER=${{ secrets.DB_USER }}
             export DB_PASSWORD=${{ secrets.DB_PASSWORD }}
             export IMAGE_URI=${{ needs.build-and-push.outputs.image_uri }}
-
+            
             # Create or update docker-compose.yml file
-            # IMPROVEMENT: Use Docker Compose for cleaner service management
             cat << EOF > ~/docker-compose.yml
             version: '3.8'
             services:
@@ -104,26 +103,26 @@ jobs:
                 ports:
                   - "5432:5432"
                 volumes:
-                  - user_db_data:/var/lib/postgresql/data # <-- CORRECTION: Persist DB data
+                  - user_db_data:/var/lib/postgresql/data
                 restart: always
-
+            
               app:
                 image: \${IMAGE_URI}
                 ports:
                   - "8081:8081"
                 environment:
-                  DB_URL: jdbc:postgresql://db:5432/postgres # Use service name 'db' for hostname
+                  DB_URL: jdbc:postgresql://db:5432/postgres
                   DB_USERNAME: \${DB_USER}
                   DB_PASSWORD: \${DB_PASSWORD}
                 depends_on:
                   - db
                 restart: always
-
+            
             volumes:
               user_db_data:
             EOF
-
+            
             # Pull the latest images and restart the services
             cd ~
-            docker-compose pull
-            docker-compose up -d --force-recreate
+            docker compose pull  # <-- CORRECTION: Note the space
+            docker compose up -d --force-recreate # <-- CORRECTION: Note the space
