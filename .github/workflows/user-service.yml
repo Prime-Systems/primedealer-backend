@@ -78,4 +78,6 @@ jobs:
               VpcId=${{ secrets.VPC_ID }} \
               SubnetIds='${{ secrets.SUBNET_IDS }}' \
               SecurityGroupIds='${{ secrets.SECURITY_GROUP_IDS }}' \
+              DbMasterUsername=${{ secrets.DB_MASTER_USERNAME }} \
+              DbMasterPassword=${{ secrets.DB_MASTER_PASSWORD }} \
             --capabilities CAPABILITY_NAMED_IAM
