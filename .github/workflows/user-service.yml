@@ -12,11 +12,9 @@ env:
   DOCKER_IMAGE_NAME: primedealer-user-service
 
 jobs:
-  build-and-push:
-    name: Build and Push Docker Image
+  build-and-deploy:
+    name: Build, Push and Deploy
     runs-on: ubuntu-latest
-    outputs:
-      image_uri: ${{ steps.push-image.outputs.image_uri }}
 
     steps:
       - name: Checkout repository
@@ -54,31 +52,25 @@ jobs:
           # Push to Docker Hub
           docker push "$IMAGE_URI"
 
-          # Output for next job
+          # Output for deploy step
           echo "image_uri=$IMAGE_URI" >> $GITHUB_OUTPUT
 
-  deploy:
-    name: Deploy to EC2 via SSH
-    needs: build-and-push
-    runs-on: ubuntu-latest
-
-    steps:
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.7
-        env:
-          IMAGE_URI: ${{ needs.build-and-push.outputs.image_uri }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: IMAGE_URI
           script: |
             cd ~
+            
+            # Set the image URI directly in the script
+            IMAGE_URI="${{ steps.push-image.outputs.image_uri }}"
             
             # Login to Docker Hub on EC2
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
             
-            # Create or update docker-compose.yml with direct variable substitution
+            # Create docker-compose.yml with the image URI directly substituted
             cat << EOF > docker-compose.yml
             version: '3.8'
             services:
@@ -95,7 +87,7 @@ jobs:
                 restart: always
             
               app:
-                image: ${IMAGE_URI}
+                image: ${{ steps.push-image.outputs.image_uri }}
                 ports:
                   - "8081:8081"
                 environment:
