@@ -1,0 +1,40 @@
+# render.yaml - Place this in the root of your Git repository
+
+services:
+  # ----------------- The PostgreSQL Database -----------------
+  - type: pserv # This means Private Service, a database in this case
+    name: user-db # A name for the database service
+    runtime: postgres # Specify the runtime
+    plan: free # Use the free instance type
+    databaseName: postgres # Corresponds to POSTGRES_DB
+    user: postgres # Corresponds to POSTGRES_USER
+    # Note: Render manages the password automatically and securely.
+
+  # ----------------- The User Microservice -----------------
+  - type: web # A web service accessible from the internet
+    name: user-service # The name of your microservice
+    runtime: java # Specify the language runtime
+    plan: free # Use the free instance type
+    # --- Build Configuration ---
+    repo: https://github.com/Prime-Systems/primedealer-backend # The URL to your repo
+    rootDir: ./user-service # IMPORTANT: Specifies the submodule directory
+    buildCommand: "./mvnw clean package"
+    startCommand: "java -jar target/user-service-0.0.1-SNAPSHOT.jar"
+    # --- Environment Configuration ---
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: production
+      - key: JDBC_DATABASE_URL # This name matches our application.properties
+        fromDatabase:
+          name: user-db # Links to the database defined above
+          property: connectionString # Tells Render to inject the internal URL
+      - key: JDBC_DATABASE_USERNAME
+        fromDatabase:
+          name: user-db
+          property: user
+      - key: JDBC_DATABASE_PASSWORD
+        fromDatabase:
+          name: user-db
+          property: password
+      - key: JWT_SECRET_KEY # Store secrets securely
+        generateValue: true # Or use 'sync: false' to set it in the dashboard
