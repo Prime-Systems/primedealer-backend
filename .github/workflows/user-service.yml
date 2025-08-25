@@ -1,4 +1,4 @@
-name: User Service CI/CD (Docker Hub + EC2)
+name: User Service CI/CD
 
 on:
   push:
@@ -8,18 +8,21 @@ on:
       - main
 
 env:
-  DOCKER_REPO: primedealer-user-service
   WORKING_DIRECTORY: ./user-service
+  DOCKER_IMAGE_NAME: primedealer-user-service
 
 jobs:
-  deploy:
+  build-and-push:
+    name: Build and Push Docker Image
     runs-on: ubuntu-latest
+    outputs:
+      image_uri: ${{ steps.push-image.outputs.image_uri }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Java 21
+      - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
@@ -27,54 +30,63 @@ jobs:
           cache: 'maven'
 
       - name: Ensure mvnw is executable
-        working-directory: ${{ env.WORKING_DIRECTORY }}
-        run: chmod +x mvnw
+        run: chmod +x ${{ env.WORKING_DIRECTORY }}/mvnw
 
-      - name: Run tests
-        working-directory: ${{ env.WORKING_DIRECTORY }}
-        run: ./mvnw test
+      - name: Run Tests
+        run: ${{ env.WORKING_DIRECTORY }}/mvnw test
 
-      - name: Login to Docker Hub
+      - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and Push Docker Image
+        id: push-image
         run: |
-          IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/${DOCKER_REPO}:${GITHUB_SHA}"
-          echo "Building image: $IMAGE_NAME"
-          ./${{ env.WORKING_DIRECTORY }}/mvnw -f ${{ env.WORKING_DIRECTORY }}/pom.xml spring-boot:build-image -Dspring-boot.build-image.imageName="$IMAGE_NAME"
-          docker push "$IMAGE_NAME"
-          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+          IMAGE_TAG=${GITHUB_SHA}
+          IMAGE_URI=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:${IMAGE_TAG}
 
-      - name: Deploy to EC2 via SSH
+          # Build Spring Boot image
+          ./${{ env.WORKING_DIRECTORY }}/mvnw -f ${{ env.WORKING_DIRECTORY }}/pom.xml spring-boot:build-image \
+            -Dspring-boot.build-image.imageName="$IMAGE_URI"
+
+          # Push to Docker Hub
+          docker push "$IMAGE_URI"
+
+          # Output for next job
+          echo "image_uri=$IMAGE_URI" >> $GITHUB_OUTPUT
+
+  deploy:
+    name: Deploy to EC2 via SSH
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          env:
-            IMAGE_NAME: ${{ env.IMAGE_NAME }}
-            DB_USER: ${{ secrets.DB_MASTER_USERNAME }}
-            DB_PASSWORD: ${{ secrets.DB_MASTER_PASSWORD }}
-            DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-            DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           script: |
             cd ~
 
-            # Login to Docker Hub
-            docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+            # Login to Docker Hub on EC2
+            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
 
-            # Create/update docker-compose.yml
+            # Set image URI
+            IMAGE_URI="${{ needs.build-and-push.outputs.image_uri }}"
+
+            # Create or update docker-compose.yml
             cat << EOF > docker-compose.yml
             version: '3.8'
             services:
               db:
                 image: postgres:17-alpine
                 environment:
-                  POSTGRES_USER: ${DB_MASTER_USERNAME}
-                  POSTGRES_PASSWORD: ${DB_MASTER_PASSWORD}
+                  POSTGRES_USER: ${{ secrets.DB_MASTER_USERNAME }}
+                  POSTGRES_PASSWORD: ${{ secrets.DB_MASTER_PASSWORD }}
                   POSTGRES_DB: postgres
                 ports:
                   - "5432:5432"
@@ -83,13 +95,13 @@ jobs:
                 restart: always
 
               app:
-                image: ${IMAGE_NAME}
+                image: $IMAGE_URI
                 ports:
                   - "8081:8081"
                 environment:
                   DB_URL: jdbc:postgresql://db:5432/postgres
-                  DB_USERNAME: ${DB_MASTER_USERNAME}
-                  DB_PASSWORD: ${DB_MASTER_PASSWORD}
+                  DB_USERNAME: ${{ secrets.DB_MASTER_USERNAME }}
+                  DB_PASSWORD: ${{ secrets.DB_MASTER_PASSWORD }}
                 depends_on:
                   - db
                 restart: always
@@ -98,6 +110,6 @@ jobs:
               user_db_data:
             EOF
 
-            # Pull and start containers
+            # Pull and recreate containers
             docker-compose pull
             docker-compose up -d --force-recreate
