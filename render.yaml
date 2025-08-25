@@ -26,8 +26,6 @@ services:
         value: 8081
       - key: JWT_SECRET_KEY
         generateValue: true
-
-      # NEW: Use individual database properties
       - key: DB_HOST
         fromDatabase:
           name: user-db
