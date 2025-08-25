@@ -1,23 +1,15 @@
-# render.yaml - Place this in the root of your Git repository
-
 services:
   # ----------------- The PostgreSQL Database -----------------
-  - type: pserv  # Private Service (database)
+  - type: postgres
     name: user-db
-    runtime: postgres
     plan: free
-    # Render automatically sets:
-    # - POSTGRES_DB
-    # - POSTGRES_USER
-    # - POSTGRES_PASSWORD
-    # You don't need to define them here.
 
   # ----------------- The User Microservice -----------------
   - type: web
     name: user-service
-    runtime: java
     plan: free
-    repo: https://github.com/Prime-Systems/primedealer-backend
+    runtime: docker
+    repo: https://github.com/your-username/your-repo
     rootDir: ./user-service
     buildCommand: "./mvnw clean package"
     startCommand: "java -jar target/user-service-0.0.1-SNAPSHOT.jar"
