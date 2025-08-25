@@ -94,6 +94,9 @@ jobs:
                   DB_URL: jdbc:postgresql://db:5432/postgres
                   DB_USERNAME: ${{ secrets.DB_MASTER_USERNAME }}
                   DB_PASSWORD: ${{ secrets.DB_MASTER_PASSWORD }}
+                  JAVA_OPTS: "-Xmx256m -Xms128m"
+                  BPL_JVM_HEAD_ROOM: "5"
+                mem_limit: 512m
                 depends_on:
                   - db
                 restart: always
