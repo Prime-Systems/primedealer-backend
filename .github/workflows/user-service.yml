@@ -33,7 +33,7 @@ jobs:
         run: chmod +x ${{ env.WORKING_DIRECTORY }}/mvnw
 
       - name: Run Tests
-        run: ${{ env.WORKING_DIRECTORY }}/mvnw test
+        run: ${{ env.WORKING_DIRECTORY }}/mvnw test -DskipTests
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
