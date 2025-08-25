@@ -1,30 +1,47 @@
-# render.yaml - Place this in the root of your Git repository
-# Top-level key for all database definitions
-databases:
-  - name: user-db # The name to reference in other services
-    plan: free # Use the free instance type
-    databaseName: userdb # Changed from 'postgres' (reserved name)
-    user: dbuser # Changed from 'postgres' (invalid username)
+# render.yaml
+# =============================================================== #
+# =    RENDER CONFIGURATION FOR A DOCKERIZED JAVA SERVICE       = #
+# =============================================================== #
 
-# Top-level key for all application service definitions
+# --- Database Definition ---
+# This defines the managed PostgreSQL database for your application.
+databases:
+  - name: user-db # A unique name to reference this database in other services.
+    plan: free # Use the free instance type for development/hobby projects.
+    databaseName: userdb
+    user: dbuser
+
+# --- Service Definitions ---
+# This defines your Java application.
 services:
-  - type: web # A web service accessible from the internet
-    name: user-service # The name of your microservice
-    runtime: docker # Changed from 'java' to 'docker'
+  - type: web # It's a web service accessible from the internet.
+    name: user-service # A unique name for the service.
+    runtime: docker # Specifies that Render should build and run this from a Dockerfile.
     plan: free
-    # --- Build Configuration ---
-    repo: https://github.com/Prime-Systems/primedealer-backend # The URL to your repo
-    rootDir: ./user-service # Specifies the submodule directory
-    # Build and start commands are handled by Dockerfile
-    # buildCommand: "./mvnw clean package"  # Not needed with Docker
-    # startCommand: "java -jar target/user-service-0.0.1-SNAPSHOT.jar"  # Not needed with Docker
-    # --- Environment Configuration ---
+    repo: https://github.com/Prime-Systems/primedealer-backend # The URL to your repo.
+    rootDir: ./user-service # The directory of your service within the repo.
+
+    # Build and start commands are defined in your Dockerfile, so they are not needed here.
+    # buildCommand: "./mvnw clean package"
+    # startCommand: "java -jar target/user-service-0.0.1-SNAPSHOT.jar"
+
+    # --- Environment Variables ---
+    # These values are injected into your application's environment at runtime.
     envVars:
+      # Activates the 'application-production.properties' file.
       - key: SPRING_PROFILES_ACTIVE
         value: production
+
+      # Tells Render which port your application uses.
+      - key: PORT
+        value: 8081
+
+      # Securely injects the full database connection string.
       - key: DATABASE_URL
         fromDatabase:
           name: user-db
           property: connectionString
+
+      # Generates a secure, random value for your JWT secret on first deploy.
       - key: JWT_SECRET_KEY
         generateValue: true
