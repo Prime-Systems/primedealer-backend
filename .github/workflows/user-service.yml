@@ -54,7 +54,7 @@ jobs:
           # Push to Docker Hub
           docker push "$IMAGE_URI"
 
-          # Output for next job
+          # Set output for next job
           echo "image_uri=$IMAGE_URI" >> $GITHUB_OUTPUT
 
   deploy:
@@ -69,47 +69,50 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd ~
+        env:
+          IMAGE_URI: ${{ needs.build-and-push.outputs.image_uri }}
+          DB_USER: ${{ secrets.DB_MASTER_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_MASTER_PASSWORD }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        script: |
+          cd ~
 
-            # Login to Docker Hub on EC2
-            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+          # Login to Docker Hub on EC2
+          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
-            # Set image URI
-            IMAGE_URI="${{ needs.build-and-push.outputs.image_uri }}"
+          # Create or update docker-compose.yml
+          cat << EOF > docker-compose.yml
+          version: '3.8'
+          services:
+            db:
+              image: postgres:17-alpine
+              environment:
+                POSTGRES_USER: $DB_USER
+                POSTGRES_PASSWORD: $DB_PASSWORD
+                POSTGRES_DB: postgres
+              ports:
+                - "5432:5432"
+              volumes:
+                - user_db_data:/var/lib/postgresql/data
+              restart: always
 
-            # Create or update docker-compose.yml
-            cat << EOF > docker-compose.yml
-            version: '3.8'
-            services:
-              db:
-                image: postgres:17-alpine
-                environment:
-                  POSTGRES_USER: ${{ secrets.DB_MASTER_USERNAME }}
-                  POSTGRES_PASSWORD: ${{ secrets.DB_MASTER_PASSWORD }}
-                  POSTGRES_DB: postgres
-                ports:
-                  - "5432:5432"
-                volumes:
-                  - user_db_data:/var/lib/postgresql/data
-                restart: always
+            app:
+              image: $IMAGE_URI
+              ports:
+                - "8081:8081"
+              environment:
+                DB_URL: jdbc:postgresql://db:5432/postgres
+                DB_USERNAME: $DB_USER
+                DB_PASSWORD: $DB_PASSWORD
+              depends_on:
+                - db
+              restart: always
 
-              app:
-                image: $IMAGE_URI
-                ports:
-                  - "8081:8081"
-                environment:
-                  DB_URL: jdbc:postgresql://db:5432/postgres
-                  DB_USERNAME: ${{ secrets.DB_MASTER_USERNAME }}
-                  DB_PASSWORD: ${{ secrets.DB_MASTER_PASSWORD }}
-                depends_on:
-                  - db
-                restart: always
+          volumes:
+            user_db_data:
+          EOF
 
-            volumes:
-              user_db_data:
-            EOF
-
-            # Pull and recreate containers
-            docker-compose pull
-            docker-compose up -d --force-recreate
+          # Pull and recreate containers
+          docker-compose pull
+          docker-compose up -d --force-recreate
