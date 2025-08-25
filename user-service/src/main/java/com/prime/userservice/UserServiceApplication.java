@@ -19,7 +19,6 @@ class MyRunner implements CommandLineRunner {
 
     @Value("${spring.datasource.url}")
     private String dbUrl;
-
     @Override
     public void run(String... args) throws Exception {
         System.out.println("Database URL: " + dbUrl);
