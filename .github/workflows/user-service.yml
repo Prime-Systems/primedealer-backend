@@ -65,18 +65,20 @@ jobs:
     steps:
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.7
+        env:
+          IMAGE_URI: ${{ needs.build-and-push.outputs.image_uri }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: IMAGE_URI=${{ needs.build-and-push.outputs.image_uri }} # Pass the variable as an environment variable
+          envs: IMAGE_URI
           script: |
             cd ~
             
             # Login to Docker Hub on EC2
-            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
             
-            # Create or update docker-compose.yml
+            # Create or update docker-compose.yml with direct variable substitution
             cat << EOF > docker-compose.yml
             version: '3.8'
             services:
@@ -93,7 +95,7 @@ jobs:
                 restart: always
             
               app:
-                image: $IMAGE_URI # The variable is now correctly passed and referenced
+                image: ${IMAGE_URI}
                 ports:
                   - "8081:8081"
                 environment:
