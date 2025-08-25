@@ -1,23 +1,23 @@
 # render.yaml - Place this in the root of your Git repository
-
 # Top-level key for all database definitions
 databases:
   - name: user-db # The name to reference in other services
     plan: free # Use the free instance type
-    databaseName: postgres # The name of the actual database
-    user: postgres # The username for the database
+    databaseName: userdb # Changed from 'postgres' (reserved name)
+    user: dbuser # Changed from 'postgres' (invalid username)
 
 # Top-level key for all application service definitions
 services:
   - type: web # A web service accessible from the internet
     name: user-service # The name of your microservice
-    runtime: java
+    runtime: docker # Changed from 'java' to 'docker'
     plan: free
     # --- Build Configuration ---
     repo: https://github.com/Prime-Systems/primedealer-backend # The URL to your repo
     rootDir: ./user-service # Specifies the submodule directory
-    buildCommand: "./mvnw clean package"
-    startCommand: "java -jar target/user-service-0.0.1-SNAPSHOT.jar"
+    # Build and start commands are handled by Dockerfile
+    # buildCommand: "./mvnw clean package"  # Not needed with Docker
+    # startCommand: "java -jar target/user-service-0.0.1-SNAPSHOT.jar"  # Not needed with Docker
     # --- Environment Configuration ---
     envVars:
       - key: SPRING_PROFILES_ACTIVE
