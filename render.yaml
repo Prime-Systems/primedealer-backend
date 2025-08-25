@@ -4,7 +4,7 @@ services:
     plan: free
     runtime: docker
     region: oregon        # optional—ensure same region as the database
-    repo: https://github.com/your-username/your-repo
+    repo: https://github.com/Prime-Systems/primedealer-backend
     rootDir: ./user-service
     envVars:
       - key: SPRING_PROFILES_ACTIVE
