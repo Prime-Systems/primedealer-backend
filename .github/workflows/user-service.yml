@@ -64,9 +64,8 @@ jobs:
 
   deploy:
     name: Deploy to EC2
-    needs: build-and-push # This job runs only after build-and-push succeeds
+    needs: build-and-push
     runs-on: ubuntu-latest
-
     steps:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -81,11 +80,15 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
+          # Pass the variables directly to the 'env' input
+          # This makes them available as environment variables for the script
+          env:
+            DB_USER: ${{ secrets.DB_USER }}
+            DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+            IMAGE_URI: ${{ needs.build-and-push.outputs.image_uri }}
           script: |
-            # Set environment variables for Docker Compose from GitHub Secrets
-            export DB_USER=${{ secrets.DB_USER }}
-            export DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-            export IMAGE_URI=${{ needs.build-and-push.outputs.image_uri }}
+            # The environment variables are now set automatically by the SSH action.
+            # No need for the `export` lines.
             
             # Create or update docker-compose.yml file
             cat << EOF > ~/docker-compose.yml
@@ -94,8 +97,8 @@ jobs:
               db:
                 image: postgres:17-alpine
                 environment:
-                  POSTGRES_USER: \${DB_USER}
-                  POSTGRES_PASSWORD: \${DB_PASSWORD}
+                  POSTGRES_USER: ${DB_USER}
+                  POSTGRES_PASSWORD: ${DB_PASSWORD}
                   POSTGRES_DB: postgres
                 ports:
                   - "5432:5432"
@@ -104,13 +107,13 @@ jobs:
                 restart: always
             
               app:
-                image: \${IMAGE_URI}
+                image: ${IMAGE_URI}
                 ports:
                   - "8081:8081"
                 environment:
                   DB_URL: jdbc:postgresql://db:5432/postgres
-                  DB_USERNAME: \${DB_USER}
-                  DB_PASSWORD: \${DB_PASSWORD}
+                  DB_USERNAME: ${DB_USER}
+                  DB_PASSWORD: ${DB_PASSWORD}
                 depends_on:
                   - db
                 restart: always
