@@ -1,4 +1,4 @@
-name: Simplified User Service CI/CD
+name: User Service CI/CD (Docker Hub + EC2)
 
 on:
   push:
@@ -8,80 +8,96 @@ on:
       - main
 
 env:
-  AWS_REGION: ${{ secrets.AWS_REGION }}
-  ECR_REPOSITORY: primedealer-user-service
+  DOCKER_REPO: primedealer-user-service
   WORKING_DIRECTORY: ./user-service
 
 jobs:
   deploy:
-    name: Deploy to EC2
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Ensure mvnw is executable
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: chmod +x mvnw
 
-      - name: Deploy using SSH
+      - name: Run tests
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: ./mvnw test
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        run: |
+          IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/${DOCKER_REPO}:${GITHUB_SHA}"
+          echo "Building image: $IMAGE_NAME"
+          ./${{ env.WORKING_DIRECTORY }}/mvnw -f ${{ env.WORKING_DIRECTORY }}/pom.xml spring-boot:build-image -Dspring-boot.build-image.imageName="$IMAGE_NAME"
+          docker push "$IMAGE_NAME"
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+
+      - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           env:
-            ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-            ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
-            DB_USER: ${{ secrets.DB_USER }}
-            DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-            GITHUB_SHA: ${{ github.sha }}
+            IMAGE_NAME: ${{ env.IMAGE_NAME }}
+            DB_USER: ${{ secrets.DB_MASTER_USERNAME }}
+            DB_PASSWORD: ${{ secrets.DB_MASTER_PASSWORD }}
+            DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+            DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           script: |
-            # Navigate to the home directory
             cd ~
 
-            # Set the image URI using the SHA from the CI job
-            IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${GITHUB_SHA}"
+            # Login to Docker Hub
+            docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
 
-            # Create or update docker-compose.yml file
-            cat << EOF > ~/docker-compose.yml
+            # Create/update docker-compose.yml
+            cat << EOF > docker-compose.yml
             version: '3.8'
             services:
               db:
                 image: postgres:17-alpine
                 environment:
-                  POSTGRES_USER: ${DB_USER}
-                  POSTGRES_PASSWORD: ${DB_PASSWORD}
+                  POSTGRES_USER: ${DB_MASTER_USERNAME}
+                  POSTGRES_PASSWORD: ${DB_MASTER_PASSWORD}
                   POSTGRES_DB: postgres
                 ports:
                   - "5432:5432"
                 volumes:
                   - user_db_data:/var/lib/postgresql/data
                 restart: always
-            
+
               app:
-                image: ${IMAGE_URI}
+                image: ${IMAGE_NAME}
                 ports:
                   - "8081:8081"
                 environment:
                   DB_URL: jdbc:postgresql://db:5432/postgres
-                  DB_USERNAME: ${DB_USER}
-                  DB_PASSWORD: ${DB_PASSWORD}
+                  DB_USERNAME: ${DB_MASTER_USERNAME}
+                  DB_PASSWORD: ${DB_MASTER_PASSWORD}
                 depends_on:
                   - db
                 restart: always
-            
+
             volumes:
               user_db_data:
             EOF
-            
-            # Use `docker-compose` to pull the specific image and redeploy
+
+            # Pull and start containers
             docker-compose pull
             docker-compose up -d --force-recreate
