@@ -13,7 +13,7 @@ services:
       - "8081:8081"
     restart: unless-stopped
     depends_on:
-      catalog-db:
+      user-db:
         condition: service_healthy
     deploy:
       resources:
