@@ -1,14 +1,9 @@
 services:
-  # ----------------- The PostgreSQL Database -----------------
-  - type: postgres
-    name: user-db
-    plan: free
-
-  # ----------------- The User Microservice -----------------
   - type: web
     name: user-service
     plan: free
     runtime: docker
+    region: oregon        # optional—ensure same region as the database
     repo: https://github.com/your-username/your-repo
     rootDir: ./user-service
     envVars:
@@ -28,3 +23,8 @@ services:
           property: password
       - key: JWT_SECRET_KEY
         generateValue: true
+
+databases:
+  - name: user-db
+    plan: free
+    region: oregon        # ensure same region to enable private networking
