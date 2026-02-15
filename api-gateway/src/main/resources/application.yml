@@ -1,0 +1,272 @@
+# API Gateway Configuration
+# Following 12-Factor App: Configuration via environment variables
+
+spring:
+  application:
+    name: api-gateway
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+  # Exclude conflicting tracing auto-configurations
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.actuate.autoconfigure.tracing.BraveAutoConfiguration
+
+  # Redis for Rate Limiting
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+
+  # Cloud Gateway Configuration
+  cloud:
+    gateway:
+      # Global settings
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
+        - name: RequestSize
+          args:
+            maxSize: 10MB
+
+      # Route definitions
+      routes:
+        # Auth Service Routes
+        - id: auth-service
+          uri: ${AUTH_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/auth/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: authServiceCB
+                fallbackUri: forward:/fallback/auth
+            - name: RateLimiting
+              args:
+                maxRequests: 100
+                windowSeconds: 60
+                keyPrefix: auth
+            - RewritePath=/api/v1/auth/(?<segment>.*), /api/v1/auth/${segment}
+
+        # User Service Routes - Public
+        - id: user-service-public
+          uri: ${USER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/users/register, /api/v1/users/verify-email/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: userServiceCB
+                fallbackUri: forward:/fallback/user
+            - name: RateLimiting
+              args:
+                maxRequests: 20
+                windowSeconds: 60
+                keyPrefix: register
+
+        # User Service Routes - Authenticated
+        - id: user-service
+          uri: ${USER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/users/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: userServiceCB
+                fallbackUri: forward:/fallback/user
+            - name: RateLimiting
+              args:
+                maxRequests: 200
+                windowSeconds: 60
+                keyPrefix: users
+
+        # Actuator routes for each service (internal)
+        - id: auth-actuator
+          uri: ${AUTH_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/services/auth/actuator/**
+          filters:
+            - RewritePath=/services/auth/actuator/(?<segment>.*), /actuator/${segment}
+
+        - id: user-actuator
+          uri: ${USER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/services/user/actuator/**
+          filters:
+            - RewritePath=/services/user/actuator/(?<segment>.*), /actuator/${segment}
+
+      # Global CORS configuration
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOriginPatterns:
+              - "http://localhost:*"
+              - "https://*.recs.com"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - PATCH
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+            exposedHeaders:
+              - Authorization
+              - X-Request-ID
+              - X-RateLimit-Limit
+              - X-RateLimit-Remaining
+            allowCredentials: true
+            maxAge: 3600
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+# JWT Configuration (for validation)
+jwt:
+  access-token:
+    secret: ${JWT_SECRET:your-256-bit-secret-key-here-for-development-only-replace-in-production}
+  refresh-token:
+    secret: ${JWT_REFRESH_SECRET:${JWT_SECRET:your-256-bit-secret-key-here-for-development-only-replace-in-production}}
+  issuer: ${JWT_ISSUER:recs-auth-service}
+
+# Actuator & Health
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics,gateway
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+    gateway:
+      enabled: true
+  health:
+    redis:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+# Resilience4j Circuit Breaker
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30000
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+    instances:
+      authServiceCB:
+        baseConfig: default
+      userServiceCB:
+        baseConfig: default
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.prime.gateway: ${LOG_LEVEL:DEBUG}
+    org.springframework.cloud.gateway: INFO
+    reactor.netty: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId:-},%X{spanId:-}] %-5level %logger{36} - %msg%n"
+
+---
+# Local Development Profile
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/v1/auth/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: authServiceCB
+                fallbackUri: forward:/fallback/auth
+
+        - id: user-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/v1/users/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: userServiceCB
+                fallbackUri: forward:/fallback/user
+
+logging:
+  level:
+    com.prime.gateway: DEBUG
+
+---
+# Docker/Kubernetes Profile
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+  data:
+    redis:
+      host: redis
+      port: 6379
+
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: http://auth-service:8082
+          predicates:
+            - Path=/api/v1/auth/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: authServiceCB
+                fallbackUri: forward:/fallback/auth
+
+        - id: user-service
+          uri: http://user-service:8081
+          predicates:
+            - Path=/api/v1/users/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: userServiceCB
+                fallbackUri: forward:/fallback/user
+
+---
+# Production Profile
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+logging:
+  level:
+    root: WARN
+    com.prime.gateway: INFO

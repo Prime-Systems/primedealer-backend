@@ -1,0 +1,129 @@
+# User Service Configuration
+# 12-Factor App: Configuration via environment variables
+
+spring:
+  application:
+    name: user-service
+  
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:primedealer}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:pass1234}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DATABASE_POOL_SIZE:10}
+      minimum-idle: ${DATABASE_POOL_MIN:5}
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+  
+  # Flyway Migrations
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  
+  # Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 5000ms
+  
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8081}
+  shutdown: graceful
+  servlet:
+    context-path: /
+
+# JWT Configuration
+jwt:
+  access-token:
+    secret: ${JWT_ACCESS_TOKEN_SECRET:your-256-bit-secret-key-for-access-tokens-min-32-chars}
+    validity-ms: ${JWT_ACCESS_TOKEN_VALIDITY_MS:900000} # 15 minutes
+  refresh-token:
+    secret: ${JWT_REFRESH_TOKEN_SECRET:your-256-bit-secret-key-for-refresh-tokens-min-32-chars}
+    validity-ms: ${JWT_REFRESH_TOKEN_VALIDITY_MS:604800000} # 7 days
+  issuer: ${JWT_ISSUER:recs-platform}
+
+# WebAuthn Configuration
+webauthn:
+  rp:
+    id: ${WEBAUTHN_RP_ID:localhost}
+    name: ${WEBAUTHN_RP_NAME:RECS Platform}
+    origin: ${WEBAUTHN_ORIGIN:http://localhost:3000}
+
+# Application Configuration
+app:
+  name: ${APP_NAME:RECS Platform}
+
+# Actuator Configuration (Observability)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  tracing:
+    sampling:
+      probability: 1.0
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.prime: ${LOG_LEVEL:DEBUG}
+    org.springframework.security: INFO
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{requestId}] %-5level %logger{36} - %msg%n"
+
+# OpenAPI Documentation
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
