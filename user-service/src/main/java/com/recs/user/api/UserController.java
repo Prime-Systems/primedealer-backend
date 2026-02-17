@@ -1,6 +1,7 @@
 package com.prime.user.api;
 
 import com.prime.common.dto.ApiResponse;
+import com.prime.common.security.SecurityConstants;
 import com.prime.common.util.RequestContextUtil;
 import com.prime.user.application.dto.*;
 import com.prime.user.application.service.MfaService;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -80,6 +82,7 @@ public class UserController {
 
     @GetMapping("/{userId}")
     @Operation(summary = "Get user by ID (admin only)")
+    @PreAuthorize("hasRole('" + SecurityConstants.ROLE_ADMIN + "')")
     public ResponseEntity<ApiResponse<UserResponse>> getUserById(
             @PathVariable UUID userId,
             HttpServletRequest httpRequest) {
@@ -87,6 +90,30 @@ public class UserController {
         String requestId = RequestContextUtil.getRequestId(httpRequest);
         UserResponse user = userService.getUserById(userId);
         return ResponseEntity.ok(ApiResponse.success(user, requestId));
+    }
+
+    @PostMapping("/{userId}/approve")
+    @Operation(summary = "Approve user (admin only)")
+    @PreAuthorize("hasRole('" + SecurityConstants.ROLE_ADMIN + "')")
+    public ResponseEntity<ApiResponse<Void>> approveUser(
+            @PathVariable UUID userId,
+            HttpServletRequest httpRequest) {
+        
+        String requestId = RequestContextUtil.getRequestId(httpRequest);
+        userService.approveUser(userId);
+        return ResponseEntity.ok(ApiResponse.success(null, requestId));
+    }
+
+    @PostMapping("/{userId}/ban")
+    @Operation(summary = "Ban user (admin only)")
+    @PreAuthorize("hasRole('" + SecurityConstants.ROLE_ADMIN + "')")
+    public ResponseEntity<ApiResponse<Void>> banUser(
+            @PathVariable UUID userId,
+            HttpServletRequest httpRequest) {
+        
+        String requestId = RequestContextUtil.getRequestId(httpRequest);
+        userService.banUser(userId);
+        return ResponseEntity.ok(ApiResponse.success(null, requestId));
     }
 
     // ==================== Password Management ====================

@@ -32,6 +32,7 @@ public class UserResponse {
     private String status;
     private boolean emailVerified;
     private boolean phoneVerified;
+    private boolean idVerificationStatus;
     private boolean mfaEnabled;
     private String mfaMethod;
     private Set<String> roles;
@@ -54,6 +55,7 @@ public class UserResponse {
                 .status(user.getStatus().name())
                 .emailVerified(user.isEmailVerified())
                 .phoneVerified(user.isPhoneVerified())
+                .idVerificationStatus(user.isIdVerificationStatus())
                 .mfaEnabled(user.isMfaEnabled())
                 .mfaMethod(user.getMfaMethod() != null ? user.getMfaMethod().name() : null)
                 .roles(user.getRoles())

@@ -147,6 +147,10 @@ public class User {
     @Column(name = "profile_picture_url", length = 500)
     private String profilePictureUrl;
 
+    @Column(name = "id_verification_status", nullable = false)
+    @Builder.Default
+    private boolean idVerificationStatus = false;
+
 //    @NotBlank(message = "Ghana card number is required")
     @Size(max = 50)
     @Column(name = "ghana_card_number", nullable = true, unique = true, length = 50)

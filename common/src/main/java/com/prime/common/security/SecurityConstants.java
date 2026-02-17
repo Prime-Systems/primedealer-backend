@@ -41,6 +41,14 @@ public final class SecurityConstants {
     public static final String TOKEN_TYPE_EMAIL_VERIFICATION = "email_verification";
     public static final String TOKEN_TYPE_MFA_SETUP = "mfa_setup";
 
+    // Roles
+    public static final String ROLE_ADMIN = "ROLE_ADMIN";
+    public static final String ROLE_DEALER = "ROLE_DEALER";
+    public static final String ROLE_AGENT = "ROLE_AGENT";
+    public static final String ROLE_BUYER = "ROLE_BUYER";
+    public static final String ROLE_SHIPPING_AGENT = "ROLE_SHIPPING_AGENT";
+    public static final String ROLE_PUBLIC_BUYER = "ROLE_PUBLIC_BUYER";
+
     // Rate Limiting
     public static final String RATE_LIMIT_REMAINING_HEADER = "X-RateLimit-Remaining";
     public static final String RATE_LIMIT_LIMIT_HEADER = "X-RateLimit-Limit";

@@ -35,11 +35,19 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             "/api/v1/auth/login",
             "/api/v1/auth/mfa/verify",
             "/api/v1/auth/refresh",
+            "/api/v1/auth/forgot-password",
+            "/api/v1/auth/reset-password",
+            "/api/v1/auth/verify-email",
             "/api/v1/users/register",
+            "/api/v1/users/forgot-password",
+            "/api/v1/users/reset-password",
+            "/api/v1/users/verify-email",
             "/actuator/health",
             "/actuator/info",
             "/swagger-ui",
-            "/v3/api-docs"
+            "/v3/api-docs",
+            "/webjars/swagger-ui",
+            "/swagger-resources"
     );
 
     @Override

@@ -406,6 +406,24 @@ public class UserService {
         });
     }
 
+    @Transactional
+    public void approveUser(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+        user.setStatus(User.UserStatus.ACTIVE);
+        userRepository.save(user);
+        log.info("User approved: userId={}", userId);
+    }
+
+    @Transactional
+    public void banUser(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+        user.setStatus(User.UserStatus.SUSPENDED);
+        userRepository.save(user);
+        log.info("User banned: userId={}", userId);
+    }
+
     // Private helper methods
 
     private void createVerificationToken(User user) {
