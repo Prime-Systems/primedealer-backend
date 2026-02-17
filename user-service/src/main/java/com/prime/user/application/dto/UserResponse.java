@@ -2,6 +2,7 @@ package com.prime.user.application.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.prime.common.security.UserRole;
 import com.prime.user.domain.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -35,7 +37,7 @@ public class UserResponse {
     private boolean idVerificationStatus;
     private boolean mfaEnabled;
     private String mfaMethod;
-    private Set<String> roles;
+    private Set<UserRole> roles;
     private Set<OAuthProviderResponse> oauthProviders;
     private Instant lastLoginAt;
     private Instant createdAt;
@@ -58,7 +60,7 @@ public class UserResponse {
                 .idVerificationStatus(user.isIdVerificationStatus())
                 .mfaEnabled(user.isMfaEnabled())
                 .mfaMethod(user.getMfaMethod() != null ? user.getMfaMethod().name() : null)
-                .roles(user.getRoles())
+                .roles(new HashSet<>(user.getRoles()))
                 .oauthProviders(user.getOauthProviders() != null ? 
                         user.getOauthProviders().stream()
                                 .map(op -> OAuthProviderResponse.builder()
@@ -84,7 +86,7 @@ public class UserResponse {
                 .username(user.getUsername())
                 .status(user.getStatus().name())
                 .mfaEnabled(user.isMfaEnabled())
-                .roles(user.getRoles())
+                .roles(new HashSet<>(user.getRoles()))
                 .build();
     }
 }

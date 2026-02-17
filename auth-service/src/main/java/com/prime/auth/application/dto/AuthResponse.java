@@ -1,6 +1,7 @@
 package com.prime.auth.application.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.prime.common.security.UserRole;
 import com.prime.auth.domain.TokenPair;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,7 +27,7 @@ public class AuthResponse {
     private long expiresIn;
     private String sessionId;
     private UUID userId;
-    private Set<String> roles;
+    private Set<UserRole> roles;
     
     // MFA-related fields
     private boolean mfaRequired;

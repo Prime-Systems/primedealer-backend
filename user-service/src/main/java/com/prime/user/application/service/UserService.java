@@ -5,6 +5,7 @@ import com.prime.common.event.EventPublisher;
 import com.prime.common.event.EventTypes;
 import com.prime.common.exception.ResourceNotFoundException;
 import com.prime.common.exception.ValidationException;
+import com.prime.common.security.UserRole;
 import com.prime.user.application.dto.*;
 import com.prime.user.domain.entity.OAuthProvider;
 import com.prime.user.domain.entity.OneTimeToken;
@@ -67,7 +68,7 @@ public class UserService {
                 .lastName(request.getLastName())
                 .phoneNumber(request.getPhoneNumber())
                 .status(User.UserStatus.PENDING_VERIFICATION)
-                .roles(Set.of("ROLE_USER"))
+                .roles(new HashSet<>(Set.of(request.getRole())))
                 .ghanaCardNumber(request.getGhanaCardNumber())
                 .build();
 
@@ -147,7 +148,7 @@ public class UserService {
                 .lastName(request.getLastName())
                 .status(User.UserStatus.ACTIVE)
                 .emailVerified(true) // OAuth emails are pre-verified
-                .roles(Set.of("ROLE_USER"))
+                .roles(new HashSet<>(Set.of(request.getRole() != null ? request.getRole() : UserRole.BUYER)))
                 .build();
 
         user = userRepository.save(user);

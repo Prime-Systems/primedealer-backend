@@ -1,5 +1,6 @@
 package com.prime.user.domain.entity;
 
+import com.prime.common.security.UserRole;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -98,8 +99,9 @@ public class User {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role")
+    @Enumerated(EnumType.STRING)
     @Builder.Default
-    private Set<String> roles = new HashSet<>();
+    private Set<UserRole> roles = new HashSet<>();
 
     // Audit
     @CreationTimestamp

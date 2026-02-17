@@ -1,5 +1,6 @@
 package com.prime.user.application.dto;
 
+import com.prime.common.security.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,4 +16,5 @@ public class OAuthRegistrationRequest {
     private String lastName;
     private String provider;
     private String providerUserId;
+    private UserRole role;
 }

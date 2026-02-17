@@ -1,6 +1,7 @@
 package com.prime.auth.infrastructure.client;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.prime.common.security.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,5 +25,5 @@ public class UserInfo {
     private String status;
     private boolean mfaEnabled;
     private String mfaMethod;
-    private Set<String> roles;
+    private Set<UserRole> roles;
 }

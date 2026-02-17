@@ -1,6 +1,7 @@
 package com.prime.auth.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.prime.common.security.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,7 +26,7 @@ public class Session implements Serializable {
     private String sessionId;
     private UUID userId;
     private String email;
-    private Set<String> roles;
+    private Set<UserRole> roles;
     
     private Instant createdAt;
     private Instant lastActivityAt;

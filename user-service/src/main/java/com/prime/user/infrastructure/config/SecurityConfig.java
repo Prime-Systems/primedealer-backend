@@ -1,6 +1,7 @@
 package com.prime.user.infrastructure.config;
 
 import com.prime.common.security.SecurityConstants;
+import com.prime.common.security.UserRole;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -105,7 +106,7 @@ public class SecurityConfig {
                                     .map(String::trim)
                                     .map(SimpleGrantedAuthority::new)
                                     .toList()
-                            : List.of(new SimpleGrantedAuthority("ROLE_USER"));
+                            : List.of(new SimpleGrantedAuthority(UserRole.BUYER.getRoleName()));
 
                     User principal = new User(userEmail, "", authorities);
                     UsernamePasswordAuthenticationToken authentication = 

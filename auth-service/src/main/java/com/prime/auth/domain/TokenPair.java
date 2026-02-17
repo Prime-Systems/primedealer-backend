@@ -1,5 +1,6 @@
 package com.prime.auth.domain;
 
+import com.prime.common.security.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,7 +26,7 @@ public class TokenPair {
     private long refreshExpiresIn; // seconds
     private String sessionId;
     private UUID userId;
-    private Set<String> roles;
+    private Set<UserRole> roles;
     private Instant issuedAt;
     
     private boolean mfaRequired;

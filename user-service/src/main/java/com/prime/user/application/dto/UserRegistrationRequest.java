@@ -1,5 +1,6 @@
 package com.prime.user.application.dto;
 
+import com.prime.common.security.UserRole;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -41,4 +42,7 @@ public class UserRegistrationRequest {
     @NotBlank(message = "Ghana card number is required")
     @Pattern(regexp = "^GHA-\\d{9}-\\d$", message = "Invalid Ghana card number format (e.g., GHA-123456789-0)")
     private String ghanaCardNumber;
+
+    @NotNull(message = "Role is required")
+    private UserRole role;
 }
