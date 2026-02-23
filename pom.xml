@@ -30,7 +30,7 @@
     </parent>
 
     <properties>
-        <java.version>21</java.version>
+        <java.version>25</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.compiler.release>${java.version}</maven.compiler.release>
@@ -67,7 +67,7 @@
     <modules>
         <module>common</module>
         <module>api-gateway</module>
-<!--        <module>user-service</module>-->
+        <module>user-service</module>
         <module>auth-service</module>
 <!--        <module>vehicle-service</module>-->
 <!--        <module>shipping-service</module>-->

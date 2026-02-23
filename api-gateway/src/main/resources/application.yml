@@ -8,11 +8,6 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
 
-  # Exclude conflicting tracing auto-configurations
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.actuate.autoconfigure.tracing.BraveAutoConfiguration
-
   # Redis for Rate Limiting
   data:
     redis:
@@ -43,11 +38,11 @@ spring:
               args:
                 name: authServiceCB
                 fallbackUri: forward:/fallback/auth
-            - name: RateLimiting
+            - name: RequestRateLimiter
               args:
-                maxRequests: 100
-                windowSeconds: 60
-                keyPrefix: auth
+                redis-rate-limiter.replenishRate: 100
+                redis-rate-limiter.burstCapacity: 150
+                redis-rate-limiter.requestedTokens: 1
             - RewritePath=/api/v1/auth/(?<segment>.*), /api/v1/auth/${segment}
 
         # User Service Routes - Public
@@ -60,11 +55,11 @@ spring:
               args:
                 name: userServiceCB
                 fallbackUri: forward:/fallback/user
-            - name: RateLimiting
+            - name: RequestRateLimiter
               args:
-                maxRequests: 20
-                windowSeconds: 60
-                keyPrefix: register
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 30
+                redis-rate-limiter.requestedTokens: 1
 
         # User Service Routes - Authenticated
         - id: user-service
@@ -76,11 +71,11 @@ spring:
               args:
                 name: userServiceCB
                 fallbackUri: forward:/fallback/user
-            - name: RateLimiting
+            - name: RequestRateLimiter
               args:
-                maxRequests: 200
-                windowSeconds: 60
-                keyPrefix: users
+                redis-rate-limiter.replenishRate: 200
+                redis-rate-limiter.burstCapacity: 300
+                redis-rate-limiter.requestedTokens: 1
 
         # Actuator routes for each service (internal)
         - id: auth-actuator
@@ -99,27 +94,27 @@ spring:
 
       # Global CORS configuration
       globalcors:
-        corsConfigurations:
+        cors-configurations:
           '[/**]':
-            allowedOriginPatterns:
+            allowed-origin-patterns:
               - "http://localhost:*"
               - "https://*.prime.com"
-            allowedMethods:
+            allowed-methods:
               - GET
               - POST
               - PUT
               - PATCH
               - DELETE
               - OPTIONS
-            allowedHeaders:
+            allowed-headers:
               - "*"
-            exposedHeaders:
+            exposed-headers:
               - Authorization
               - X-Request-ID
               - X-RateLimit-Limit
               - X-RateLimit-Remaining
-            allowCredentials: true
-            maxAge: 3600
+            allow-credentials: true
+            max-age: 3600
 
 # Server Configuration
 server:
@@ -161,7 +156,7 @@ management:
       probes:
         enabled: true
     gateway:
-      enabled: true
+      access: unrestricted
   health:
     redis:
       enabled: true

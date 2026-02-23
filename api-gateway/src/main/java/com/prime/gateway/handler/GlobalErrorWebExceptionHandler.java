@@ -1,17 +1,11 @@
 package com.prime.gateway.handler;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.web.WebProperties;
-import org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler;
-import org.springframework.boot.web.reactive.error.ErrorAttributes;
-import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.server.*;
+import org.springframework.web.server.WebExceptionHandler;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
@@ -25,40 +19,47 @@ import java.util.Map;
 @Slf4j
 @Component
 @Order(-2)
-public class GlobalErrorWebExceptionHandler extends AbstractErrorWebExceptionHandler {
-
-    public GlobalErrorWebExceptionHandler(ErrorAttributes errorAttributes,
-                                          WebProperties webProperties,
-                                          ApplicationContext applicationContext,
-                                          ServerCodecConfigurer serverCodecConfigurer) {
-        super(errorAttributes, webProperties.getResources(), applicationContext);
-        super.setMessageReaders(serverCodecConfigurer.getReaders());
-        super.setMessageWriters(serverCodecConfigurer.getWriters());
-    }
+public class GlobalErrorWebExceptionHandler implements WebExceptionHandler {
 
     @Override
-    protected RouterFunction<ServerResponse> getRoutingFunction(ErrorAttributes errorAttributes) {
-        return RouterFunctions.route(RequestPredicates.all(), this::renderErrorResponse);
-    }
-
-    private Mono<ServerResponse> renderErrorResponse(ServerRequest request) {
-        Throwable error = getError(request);
-        HttpStatus status = determineHttpStatus(error);
+    @SuppressWarnings("NullMarked")
+    public Mono<Void> handle(ServerWebExchange exchange, Throwable ex) {
+        HttpStatus status = determineHttpStatus(ex);
 
         Map<String, Object> errorResponse = new LinkedHashMap<>();
         errorResponse.put("success", false);
         errorResponse.put("timestamp", Instant.now().toString());
-        errorResponse.put("path", request.path());
+        errorResponse.put("path", exchange.getRequest().getPath().value());
         errorResponse.put("status", status.value());
         errorResponse.put("error", status.getReasonPhrase());
-        errorResponse.put("message", getErrorMessage(error, status));
+        errorResponse.put("message", getErrorMessage(ex, status));
 
         log.error("Gateway error: path={}, status={}, error={}", 
-                request.path(), status, error.getMessage(), error);
+                exchange.getRequest().getPath().value(), status, ex.getMessage(), ex);
 
-        return ServerResponse.status(status)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(BodyInserters.fromValue(errorResponse));
+        // Set response status and content type
+        exchange.getResponse().setStatusCode(status);
+        exchange.getResponse().getHeaders().add("Content-Type", "application/json");
+
+        // Write error response
+        String jsonResponse;
+        try {
+            // Simple JSON serialization since we don't have ObjectMapper dependency
+            jsonResponse = String.format(
+                "{\"success\":%s,\"timestamp\":\"%s\",\"path\":\"%s\",\"status\":%d,\"error\":\"%s\",\"message\":\"%s\"}",
+                false,
+                errorResponse.get("timestamp"),
+                errorResponse.get("path"),
+                status.value(),
+                status.getReasonPhrase(),
+                errorResponse.get("message")
+            );
+        } catch (Exception e) {
+            jsonResponse = "{\"success\":false,\"message\":\"An error occurred\"}";
+        }
+
+        var buffer = exchange.getResponse().bufferFactory().wrap(jsonResponse.getBytes());
+        return exchange.getResponse().writeWith(Mono.just(buffer));
     }
 
     private HttpStatus determineHttpStatus(Throwable error) {
@@ -78,6 +79,19 @@ public class GlobalErrorWebExceptionHandler extends AbstractErrorWebExceptionHan
     }
 
     private String getErrorMessage(Throwable error, HttpStatus status) {
+        // Check for specific error types for more detailed messages
+        String errorMessage = error.getMessage();
+        if (errorMessage != null && !errorMessage.isEmpty()) {
+            // Return more specific error messages based on status and exception details
+            return switch (status) {
+                case SERVICE_UNAVAILABLE -> "Service temporarily unavailable: " + errorMessage;
+                case GATEWAY_TIMEOUT -> "Request timed out: " + errorMessage;
+                case BAD_GATEWAY -> "Unable to connect to downstream service: " + errorMessage;
+                default -> "An unexpected error occurred: " + errorMessage;
+            };
+        }
+
+        // Fallback to generic messages if no specific error message available
         return switch (status) {
             case SERVICE_UNAVAILABLE -> "Service temporarily unavailable. Please try again later.";
             case GATEWAY_TIMEOUT -> "Request timed out. Please try again.";
