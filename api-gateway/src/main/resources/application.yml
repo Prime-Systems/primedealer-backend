@@ -5,6 +5,23 @@ spring:
   application:
     name: api-gateway
 
+  # Force reactive web application type
+  main:
+    web-application-type: reactive
+
+  # Explicitly exclude servlet-based auto configurations
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration
+      - org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration
+      - org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryAutoConfiguration
+      - org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration
+      - org.springframework.boot.autoconfigure.web.servlet.HttpEncodingAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration
+
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
 
@@ -18,6 +35,11 @@ spring:
 
   # Cloud Gateway Configuration
   cloud:
+    # Disable Spring Cloud Config
+    config:
+      enabled: false
+    refresh:
+      enabled: false
     gateway:
       # Global settings
       default-filters:

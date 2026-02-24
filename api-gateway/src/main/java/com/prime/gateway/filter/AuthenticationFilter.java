@@ -4,7 +4,8 @@ import com.prime.common.security.JwtTokenProvider;
 import com.prime.common.security.SecurityConstants;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -23,10 +24,11 @@ import java.util.Set;
  * Global authentication filter for API Gateway.
  * Validates JWT tokens and enriches requests with user context.
  */
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class AuthenticationFilter implements GlobalFilter, Ordered {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthenticationFilter.class);
 
     private final JwtTokenProvider jwtTokenProvider;
 

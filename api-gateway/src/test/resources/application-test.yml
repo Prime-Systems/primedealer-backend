@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: api-gateway-test
+
+  # Force reactive web application type
+  main:
+    web-application-type: reactive
+
+  # Explicitly exclude servlet-based auto configurations
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration
+      - org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration
+      - org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryAutoConfiguration
+      - org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration
+      - org.springframework.boot.autoconfigure.web.servlet.HttpEncodingAutoConfiguration
+      - org.springframework.cloud.autoconfigure.LifecycleMvcEndpointAutoConfiguration
+
+  # Disable Redis for testing
+  data:
+    redis:
+      repositories:
+        enabled: false
+
+  # Simplified gateway config for testing
+  cloud:
+    gateway:
+      routes:
+        - id: test-route
+          uri: http://httpbin.org
+          predicates:
+            - Path=/test/**
+
+# Disable management endpoints for testing
+management:
+  endpoints:
+    enabled-by-default: false
+  endpoint:
+    health:
+      enabled: true
+
+# Logging
+logging:
+  level:
+    root: WARN
+    com.prime.gateway: INFO

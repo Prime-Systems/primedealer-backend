@@ -1,7 +1,8 @@
 package com.prime.gateway.filter;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
@@ -15,9 +16,10 @@ import java.time.Duration;
  * Rate limiting filter using Redis.
  * Implements sliding window rate limiting per client IP.
  */
-@Slf4j
 @Component
 public class RateLimitingFilter extends AbstractGatewayFilterFactory<RateLimitingFilter.Config> {
+
+    private static final Logger log = LoggerFactory.getLogger(RateLimitingFilter.class);
 
     private final ReactiveStringRedisTemplate redisTemplate;
 

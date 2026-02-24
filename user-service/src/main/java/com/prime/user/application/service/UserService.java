@@ -410,7 +410,7 @@ public class UserService {
     @Transactional
     public void approveUser(UUID userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
         user.setStatus(User.UserStatus.ACTIVE);
         userRepository.save(user);
         log.info("User approved: userId={}", userId);
@@ -419,7 +419,7 @@ public class UserService {
     @Transactional
     public void banUser(UUID userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User",  userId.toString()));
         user.setStatus(User.UserStatus.SUSPENDED);
         userRepository.save(user);
         log.info("User banned: userId={}", userId);

@@ -25,7 +25,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.2</version>
+        <version>4.0.3</version>
         <relativePath/>
     </parent>
 
@@ -37,7 +37,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- Spring Boot & Cloud Versions -->
-        <spring-boot.version>4.0.2</spring-boot.version>
+        <spring-boot.version>4.0.3</spring-boot.version>
         <spring-cloud.version>2025.0.0</spring-cloud.version>
 
         <!-- Spring Doc -->
@@ -56,6 +56,9 @@
 
         <!-- Testing -->
         <testcontainers.version>1.20.4</testcontainers.version>
+
+        <!-- Lombok -->
+        <lombok.version>1.18.36</lombok.version>
 
         <!-- Build -->
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -216,24 +219,24 @@
                         </excludes>
                     </configuration>
                 </plugin>
-<plugin>
-    <groupId>org.apache.maven.plugins</groupId>
-    <artifactId>maven-compiler-plugin</artifactId>
-    <version>3.13.0</version>
-    <configuration>
-        <release>21</release>
-        <compilerArgs>
-            <arg>-parameters</arg>
-        </compilerArgs>
-    </configuration>
-</plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.13.0</version>
+                    <configuration>
+                        <release>25</release>
+                        <compilerArgs>
+                            <arg>-parameters</arg>
+                        </compilerArgs>
+                    </configuration>
+                </plugin>
                 <!-- Jib for Docker Images -->
                 <plugin>
                     <groupId>com.google.cloud.tools</groupId>
                     <artifactId>jib-maven-plugin</artifactId>
                     <version>${jib-maven-plugin.version}</version>
                     <configuration>
-                        <from>org.apache.maven.plugins
+                        <from>
                             <image>eclipse-temurin:21-jre-alpine</image>
                         </from>
                         <to>

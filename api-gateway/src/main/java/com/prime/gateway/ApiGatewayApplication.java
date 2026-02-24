@@ -28,6 +28,8 @@ import org.springframework.context.annotation.FilterType;
 public class ApiGatewayApplication {
 
     public static void main(String[] args) {
+        // Explicitly set reactive web application type
+        System.setProperty("spring.main.web-application-type", "reactive");
         SpringApplication.run(ApiGatewayApplication.class, args);
     }
 }

@@ -1,6 +1,7 @@
 package com.prime.gateway.filter;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -16,9 +17,10 @@ import java.util.UUID;
  * Request logging and tracing filter.
  * Adds correlation IDs and logs request/response details.
  */
-@Slf4j
 @Component
 public class RequestLoggingFilter implements GlobalFilter, Ordered {
+
+    private static final Logger log = LoggerFactory.getLogger(RequestLoggingFilter.class);
 
     private static final String REQUEST_ID_HEADER = "X-Request-ID";
     private static final String REQUEST_START_TIME = "requestStartTime";
