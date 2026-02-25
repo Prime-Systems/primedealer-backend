@@ -1,99 +1,107 @@
 <?xml version="1.0" encoding="UTF-8"?>
-                <project xmlns="http://maven.apache.org/POM/4.0.0"
-                         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-                    <modelVersion>4.0.0</modelVersion>
+                                    <project xmlns="http://maven.apache.org/POM/4.0.0"
+                                             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                                             xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+                                        <modelVersion>4.0.0</modelVersion>
 
-                    <parent>
-                        <groupId>com.prime</groupId>
-                        <artifactId>primedealer</artifactId>
-                        <version>1.0.0-SNAPSHOT</version>
-                        <relativePath>../pom.xml</relativePath>
-                    </parent>
+                                        <parent>
+                                            <groupId>com.prime</groupId>
+                                            <artifactId>primedealer</artifactId>
+                                            <version>1.0.0-SNAPSHOT</version>
+                                            <relativePath>../pom.xml</relativePath>
+                                        </parent>
 
-                    <artifactId>api-gateway</artifactId>
-                    <name>API Gateway</name>
-                    <description>Spring Cloud Gateway - Reactive API Gateway</description>
+                                        <artifactId>api-gateway</artifactId>
+                                        <name>API Gateway</name>
+                                        <description>Spring Cloud Gateway - Reactive API Gateway</description>
 
-                    <dependencies>
-                        <!-- Internal Common Module -->
-                        <dependency>
-                            <groupId>com.prime</groupId>
-                            <artifactId>common</artifactId>
-                        </dependency>
+                                        <dependencies>
+                                            <!-- Workaround: Required for annotation processing of spring-cloud-commons -->
+                                            <dependency>
+                                                <groupId>org.springframework</groupId>
+                                                <artifactId>spring-webmvc</artifactId>
+                                                <scope>provided</scope>
+                                            </dependency>
 
-                        <!-- Spring Cloud Gateway (Reactive) -->
-                        <dependency>
-                            <groupId>org.springframework.cloud</groupId>
-                            <artifactId>spring-cloud-starter-gateway</artifactId>
-                        </dependency>
+                                            <!-- Spring Cloud Gateway (Reactive) -->
+                                            <dependency>
+                                                <groupId>org.springframework.cloud</groupId>
+                                                <artifactId>spring-cloud-starter-gateway</artifactId>
+                                            </dependency>
 
-                        <!-- Spring Security (Reactive) -->
-                        <dependency>
-                            <groupId>org.springframework.boot</groupId>
-                            <artifactId>spring-boot-starter-security</artifactId>
-                        </dependency>
+                                            <!-- Internal Common Module - exclude servlet/web dependencies -->
+                                            <dependency>
+                                                <groupId>com.prime</groupId>
+                                                <artifactId>common</artifactId>
+                                                <exclusions>
+                                                    <exclusion>
+                                                        <groupId>org.springframework.boot</groupId>
+                                                        <artifactId>spring-boot-starter-web</artifactId>
+                                                    </exclusion>
+                                                    <exclusion>
+                                                        <groupId>org.springframework</groupId>
+                                                        <artifactId>spring-webmvc</artifactId>
+                                                    </exclusion>
+                                                    <exclusion>
+                                                        <groupId>jakarta.servlet</groupId>
+                                                        <artifactId>jakarta.servlet-api</artifactId>
+                                                    </exclusion>
+                                                </exclusions>
+                                            </dependency>
 
-                        <!-- Circuit Breaker -->
-                        <dependency>
-                            <groupId>org.springframework.cloud</groupId>
-                            <artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
-                        </dependency>
+                                            <!-- Spring Security (Reactive) -->
+                                            <dependency>
+                                                <groupId>org.springframework.boot</groupId>
+                                                <artifactId>spring-boot-starter-security</artifactId>
+                                            </dependency>
 
-                        <!-- Redis for Rate Limiting (optional) -->
-                        <dependency>
-                            <groupId>org.springframework.boot</groupId>
-                            <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
-                        </dependency>
+                                            <!-- Circuit Breaker -->
+                                            <dependency>
+                                                <groupId>org.springframework.cloud</groupId>
+                                                <artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
+                                            </dependency>
 
-                        <!-- JWT Dependencies -->
-                        <dependency>
-                            <groupId>io.jsonwebtoken</groupId>
-                            <artifactId>jjwt-api</artifactId>
-                        </dependency>
-                        <dependency>
-                            <groupId>io.jsonwebtoken</groupId>
-                            <artifactId>jjwt-impl</artifactId>
-                            <scope>runtime</scope>
-                        </dependency>
-                        <dependency>
-                            <groupId>io.jsonwebtoken</groupId>
-                            <artifactId>jjwt-jackson</artifactId>
-                            <scope>runtime</scope>
-                        </dependency>
+                                            <!-- Redis for Rate Limiting -->
+                                            <dependency>
+                                                <groupId>org.springframework.boot</groupId>
+                                                <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
+                                            </dependency>
 
-                        <!-- Test Dependencies -->
-                        <dependency>
-                            <groupId>org.springframework.boot</groupId>
-                            <artifactId>spring-boot-starter-test</artifactId>
-                            <scope>test</scope>
-                        </dependency>
-                        <dependency>
-                            <groupId>io.projectreactor</groupId>
-                            <artifactId>reactor-test</artifactId>
-                            <scope>test</scope>
-                        </dependency>
-                        <dependency>
-                            <groupId>org.springframework.security</groupId>
-                            <artifactId>spring-security-test</artifactId>
-                            <scope>test</scope>
-                        </dependency>
-                    </dependencies>
+                                            <!-- JWT Dependencies -->
+                                            <dependency>
+                                                <groupId>io.jsonwebtoken</groupId>
+                                                <artifactId>jjwt-api</artifactId>
+                                            </dependency>
+                                            <dependency>
+                                                <groupId>io.jsonwebtoken</groupId>
+                                                <artifactId>jjwt-impl</artifactId>
+                                                <scope>runtime</scope>
+                                            </dependency>
+                                            <dependency>
+                                                <groupId>io.jsonwebtoken</groupId>
+                                                <artifactId>jjwt-jackson</artifactId>
+                                                <scope>runtime</scope>
+                                            </dependency>
 
-                    <build>
-                        <plugins>
-                            <plugin>
-                                <groupId>org.springframework.boot</groupId>
-                                <artifactId>spring-boot-maven-plugin</artifactId>
-                            </plugin>
-                            <plugin>
-                                <groupId>org.apache.maven.plugins</groupId>
-                                <artifactId>maven-compiler-plugin</artifactId>
-                            </plugin>
-                            <plugin>
-                                <groupId>org.apache.maven.plugins</groupId>
-                                <artifactId>maven-surefire-plugin</artifactId>
-                            </plugin></plugins>
-                    </build>
+                                            <!-- Test Dependencies -->
+                                            <dependency>
+                                                <groupId>org.springframework.boot</groupId>
+                                                <artifactId>spring-boot-starter-test</artifactId>
+                                                <scope>test</scope>
+                                            </dependency>
+                                            <dependency>
+                                                <groupId>io.projectreactor</groupId>
+                                                <artifactId>reactor-test</artifactId>
+                                                <scope>test</scope>
+                                            </dependency>
+                                        </dependencies>
 
-                </project>
+                                        <build>
+                                            <plugins>
+                                                <plugin>
+                                                    <groupId>org.springframework.boot</groupId>
+                                                    <artifactId>spring-boot-maven-plugin</artifactId>
+                                                </plugin>
+                                            </plugins>
+                                        </build>
+                                    </project>

@@ -1,6 +1,6 @@
 FROM eclipse-temurin:21-jre-alpine
 
-LABEL maintainer="RECS Team"
+LABEL maintainer="Prime Dev Team"
 LABEL description="User Service - Identity and credential management"
 
 # Create non-root user for security
