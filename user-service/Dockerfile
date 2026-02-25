@@ -4,8 +4,8 @@ LABEL maintainer="Prime Dev Team"
 LABEL description="User Service - Identity and credential management"
 
 # Create non-root user for security
-RUN addgroup -g 1001 -S recs && \
-    adduser -u 1001 -S recs -G recs
+RUN addgroup -g 1001 -S prime && \
+    adduser -u 1001 -S prime -G prime
 
 # Set working directory
 WORKDIR /app
@@ -14,10 +14,10 @@ WORKDIR /app
 COPY target/*.jar app.jar
 
 # Set ownership
-RUN chown -R recs:recs /app
+RUN chown -R prime:prime /app
 
 # Switch to non-root user
-USER recs
+USER prime
 
 # JVM optimization for containers
 ENV JAVA_OPTS="-XX:+UseZGC \

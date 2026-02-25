@@ -68,6 +68,26 @@
             <plugin>
                 <groupId>com.google.cloud.tools</groupId>
                 <artifactId>jib-maven-plugin</artifactId>
+                <!--                <version>3.4.4</version>-->
+                <configuration>
+                    <to>
+                        <image>primdevteam/primedealer-auth-service:1.0.0</image>
+                    </to>
+                    <from>
+                        <image>eclipse-temurin:21-jre-alpine</image>
+                    </from>
+                    <container>
+                        <jvmFlags>
+                            <jvmFlag>-XX:+UseZGC</jvmFlag>
+                            <jvmFlag>-XX:+ZGenerational</jvmFlag>
+                            <jvmFlag>-XX:MaxRAMPercentage=75.0</jvmFlag>
+                        </jvmFlags>
+                        <ports>
+                            <port>8082</port>
+                        </ports>
+                        <user>1001</user>
+                    </container>
+                </configuration>
             </plugin>
         </plugins>
     </build>
