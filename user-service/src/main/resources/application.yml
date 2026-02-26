@@ -10,9 +10,9 @@ spring:
 
   # Database Configuration
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:primedealer}
-    username: ${POSTGRES_USER:postgres}
-    password: ${POSTGRES_PASSWORD:pass1234}
+    url: jdbc:postgresql://${POSTGRES_HOST:aws-1-eu-west-1.pooler.supabase.com}:${POSTGRES_PORT:5432}/${POSTGRES_DB:postgres}
+    username: ${POSTGRES_USER:postgres.ulzzvwttvxnogsffthqr}
+    password: ${POSTGRES_PASSWORD:qBxp0kIIAtuXa7yI}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: ${DATABASE_POOL_SIZE:10}
@@ -24,7 +24,7 @@ spring:
   # JPA Configuration
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: false
     properties:
       hibernate:
