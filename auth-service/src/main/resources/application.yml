@@ -58,14 +58,15 @@ spring:
             token-uri: https://appleid.apple.com/auth/token
             jwk-set-uri: https://appleid.apple.com/auth/keys
             user-name-attribute: sub
+  web:
+    error:
+      include-message: always
+      include-binding-errors: always
 
 # Server Configuration
 server:
   port: ${SERVER_PORT:8082}
   shutdown: graceful
-  error:
-    include-message: always
-    include-binding-errors: always
 
 # JWT Configuration
 jwt:
