@@ -75,7 +75,7 @@ jwt:
   refresh-token:
     secret: ${JWT_REFRESH_SECRET:${JWT_SECRET:your-256-bit-secret-key-here-for-development-only-replace-in-production}}
     validity-ms: ${JWT_REFRESH_TOKEN_VALIDITY:604800000}  # 7 days
-  issuer: ${JWT_ISSUER:recs-auth-service}
+  issuer: ${JWT_ISSUER:prime-auth-service}
 
 # User Service Configuration
 user-service:

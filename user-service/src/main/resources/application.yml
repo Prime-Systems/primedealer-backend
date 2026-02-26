@@ -75,7 +75,7 @@ jwt:
   refresh-token:
     secret: ${JWT_REFRESH_TOKEN_SECRET:your-256-bit-secret-key-for-refresh-tokens-min-32-chars}
     validity-ms: ${JWT_REFRESH_TOKEN_VALIDITY_MS:604800000} # 7 days
-  issuer: ${JWT_ISSUER:recs-platform}
+  issuer: ${JWT_ISSUER:prime-platform}
 
 # WebAuthn Configuration
 webauthn:
@@ -86,7 +86,7 @@ webauthn:
 
 # Application Configuration
 app:
-  name: ${APP_NAME:RECS Platform}
+  name: ${APP_NAME:PRIME DEALER Platform}
 
 # Actuator Configuration (Observability)
 management:
